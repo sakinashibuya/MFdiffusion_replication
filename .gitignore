@@ -1,0 +1,10 @@
+Hiro/**/*.aux
+Hiro/**/*.fdb_latexmk
+Hiro/**/*.fls
+Hiro/**/*.log
+Hiro/**/*.out
+Hiro/**/*.pdf
+Hiro/**/*.synctex.gz
+Hiro/**/*.toc
+
+

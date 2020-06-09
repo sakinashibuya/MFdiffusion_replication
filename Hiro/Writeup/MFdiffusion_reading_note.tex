@@ -1,0 +1,68 @@
+\documentclass[10pt,letterpaper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{pdflscape}
+\usepackage{amsmath}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{fullpage}
+\usepackage{amssymb}
+\usepackage{threeparttable}
+\usepackage[dvipdfmx, hiresbb]{graphicx}
+\usepackage[outdir=./]{epstopdf}
+\usepackage{natbib}
+\usepackage[pdftex]{hyperref}
+\hypersetup{colorlinks = true,
+                citecolor = {black}}
+\usepackage{bbm}
+\usepackage{multicol}
+\usepackage{longtable}
+\usepackage{pgf,pgffor}
+\usepackage{tikz}
+\setcounter{totalnumber}{8}
+\author{Mizuhiro Suzuki}
+\title{}
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\section{}
+
+\begin{itemize}
+  \item Main Matlab file: \texttt{"GMMDiffusion/Main\_models\_1\_3"} for model without $\lambda$ (endorsement effects) and \texttt{"GMMDiffusion/Main\_models\_2\_4"} for model with $\lambda$
+\end{itemize}
+
+\section{\texttt{Main\_models\_1\_3}}
+
+\subsection*{Part 0}
+\begin{itemize}
+  \item 26: 2 model types: modelType = 1 for $q_N = q_P$ and = 3 if $q_N \ne q_P$
+\end{itemize}
+
+\subsection*{Part 2}
+\begin{itemize}
+  \item 33: Different versions for different time intervals 
+\end{itemize}
+
+\subsection*{Part 3}
+\begin{itemize}
+  \item 49: \texttt{TMonths}: number of months in data of each village
+\end{itemize}
+
+\subsection*{Part 4}
+\begin{itemize}
+  \item 63-69: Parameter grids: although explained in detail in the Supplementary Materials, not shown how they did it
+\end{itemize}
+
+\subsection*{Part 5}
+\begin{itemize}
+  \item 63-69: Parameter grids: although explained in detail in the Supplementary Materials, not shown how they did it
+\end{itemize}
+
+\clearpage
+%\bibliographystyle{apalike}
+%\bibliography{audit}
+
+\end{document}
+
