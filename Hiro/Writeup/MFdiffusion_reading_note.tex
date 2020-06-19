@@ -205,7 +205,7 @@
 
 \subsection*{Main part}
 \begin{itemize}
-  \item 3: Declare a variable ``netstats'' which contains information of networks in each village (for the function \textt{persistent}, see \href{https://www.mathworks.com/help/matlab/ref/persistent.html}{here})
+  \item 3: Declare a variable ``netstats'' which contains information of networks in each village (for the function \texttt{persistent}, see \href{https://www.mathworks.com/help/matlab/ref/persistent.html}{here})
   \item 7-49: If a variable ``netstats'' is already defined, then almost skip the parts, but if not yet, then calculate each statistics of the networks (7-43)
     \begin{itemize}
       \item 8: Use a function \hyperref[breadthdistRAL]{\texttt{breadthdistRAL}} to calculate ??? (R: ???, D: ???)
@@ -252,21 +252,117 @@
             \end{itemize}
         \end{itemize}
       \item 91-112: Case2 (moments (2), (5), and (6) in the paper):
+        \begin{itemize}
           \item 92-100: ``Fraction of nodes that have no taking neighbors but are takers themselves'' (moment (2) in the paper)
           \item 102-106: ``Covariance of individuals taking with share of neighbors taking'' (moment (5) in the paper)
           \item 110-112: ``Covariance of individuals taking with share of second neighbors taking'' (moment (6) in the paper)
+        \end{itemize}
       \item 115-141: Case3 (moments (2), (5), and (6) in the paper, same as case 2, but purged of leader injection points):
+        \begin{itemize}
           \item 117: a variable that denotes whether a node is a leader
+        \end{itemize}
       \item 143-169: Case4 (moments (2), (5), and (6) in the paper, same as case 2, but purged of all leader points):
+        \begin{itemize}
           \item 117: a variable that denotes whether a node is a leader
           \item 166-167: Moment (6), but second neighbors who are leaders are not taken into account (see line 167)
+        \end{itemize}
     \end{itemize}
 \end{itemize}
 
 \section{\texttt{breadthdistRAL.m}}\label{breadthdistRAL}
-TBA...
+TBD...
 
 \section{\texttt{diffusion\_model.m}}\label{diffusion_model}
+
+\subsection*{Arguments}
+\begin{itemize}
+  \item parms: parameters ($q_N$, $q_P$)
+  \item Z: covariate
+  \item Betas: estimates of $\beta$'s 
+  \item X: adjacency matrix
+  \item leaders: vector indicating leaders
+  \item j: village index
+  \item T: number of months
+  \item EmpRate: proportion of non-leaders who took up MF
+\end{itemize}
+
+\subsection*{Main part}
+
+\begin{itemize}
+  \item 7-11: Prepare arrays to be updated in the simulation below
+    \begin{itemize}
+      \item 7: \texttt{infected}: people who are already infected and newly infected (initial value = false for everyone)
+      \item 8: \texttt{infectedbefore}: people who are already infected (initial value = false for everyone)
+      \item 9: \texttt{contagiousbefore}: people who are already informed (initial value = false for everyone)
+      \item 10: \texttt{contagious}: people who are newly informed and already informed (?) (initial value = true only for leaders)
+      \item 11: \texttt{dynamicInfection}: vector that tracks the infection rate for the number of periods it takes place
+    \end{itemize}
+  \item 16-39: Loop to simulate the diffusion for $T$ periods
+    \begin{itemize}
+      \item 20-27: Step 1: Take-up decision based on newly informed
+        \begin{itemize}
+          \item 21: Probability of take-up (calculated for everyone, both non-infected and already-infected)
+          \item 22: Updated infected households: \\
+            The condition \texttt{($\sim$contagiousbefore \& contagious \& x(:,t) $<$ LOGITprob)} is satisfied if:
+            \begin{itemize}
+              \item not contagious before, and 
+              \item newly informed, and
+              \item the random number generated is smaller than the LOGITprob calculated in line 21.
+            \end{itemize}
+          \item 25: Update \texttt{infectedbefore}
+          \item 26: Update \texttt{contagiousbefore}
+          \item 27: \texttt{C}: number of informed households
+        \end{itemize}
+      \item 29-31: Step 2: Information flows
+        \begin{itemize}
+          \item 30: \texttt{transmitPROB}: Vector of probability of transmission (individual specific, depending on informed and on take-up)
+            \begin{itemize}
+              \item If informed \& take-up, probability = $q_P$
+              \item If informed \& not take-up, probability = $q_N$
+            \end{itemize}
+          \item 31: \texttt{contagionlikelihood}: The probability to information flowing from informed households to neighbors (no matter whether those neighbors are already informed or not) \\
+            eg) Suppose that
+            $X = \begin{pmatrix}
+              0 & 1 & 1 & 1 \\
+              1 & 0 & 0 & 1 \\
+              1 & 0 & 0 & 0 \\
+              1 & 1 & 0 & 0
+            \end{pmatrix}$,
+            $\text{transmitPROB} = \begin{pmatrix} q_P \\ 0 \\ 0 \\ q_N \end{pmatrix}$,
+            and $\text{contagious} = \begin{pmatrix} 1 \\ 0 \\ 0 \\ 1 \end{pmatrix}$.
+            Then, 
+
+            \begin{align*}
+              &\quad \text{\texttt{X(contagious,:).*(transmitPROB(contagious)*ones(1,N))}} \\
+              &= 
+            \begin{pmatrix}
+              0 & 1 & 1 & 1 \\
+              1 & 1 & 0 & 0
+            \end{pmatrix} .* 
+            \begin{pmatrix}
+              q_P & q_P & q_P & q_P \\
+              q_N & q_N & q_N & q_N
+            \end{pmatrix} \\
+              &= \begin{pmatrix}
+              0 & q_P & q_P & q_P \\
+              q_N & q_N & 0 & 0
+            \end{pmatrix}
+            \end{align*}        
+        \end{itemize}
+      \item 33-36: Step 3: Simulate newly informed households
+        \begin{itemize}
+          \item 34: Update \texttt{contagious}:
+            \begin{itemize}
+              \item \texttt{(contagionlikelihood $>$ rand(C,N))}: simulation of whether households are informed from already informed neighbors
+              \item \texttt{((contagionlikelihood $>$ rand(C,N))'*ones(C,1) $>$ 0)}: informed at least from one neighbor
+            \end{itemize}
+          \item 36: Update \texttt{dynamicInfection} to keep track of the fraction of take-up households
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+
+
+
 
 \clearpage
 %\bibliographystyle{apalike}
