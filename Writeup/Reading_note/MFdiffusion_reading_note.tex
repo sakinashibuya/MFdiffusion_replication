@@ -9,8 +9,8 @@
 \usepackage{threeparttable}
 \usepackage[dvipdfmx, hiresbb]{graphicx}
 \usepackage[outdir=./]{epstopdf}
+\usepackage{hyperref}
 \usepackage{natbib}
-\usepackage[pdftex]{hyperref}
 \hypersetup{colorlinks = true,
                 citecolor = {black}}
 \usepackage{bbm}
@@ -29,6 +29,9 @@
 
 \section{}
 
+\section{\texttt{Main\_models\_1\_3.m}}\label{main_models_1_3}
+
+Notes:
 \begin{itemize}
   \item Main Matlab file: \texttt{"GMMDiffusion/Main\_models\_1\_3"} for model without $\lambda$ (endorsement effects) and \texttt{"GMMDiffusion/Main\_models\_2\_4"} for model with $\lambda$
 \end{itemize}
@@ -40,6 +43,11 @@
   \item 26: 2 model types: modelType == 1 for $q_N = q_P$ and == 3 for $q_N \ne q_P$
 \end{itemize}
 
+\subsection*{Part 1}
+\begin{itemize}
+	\item 29: Picking 43 BSS villages
+\end{itemize}
+
 \subsection*{Part 2}
 \begin{itemize}
   \item 33: Different versions of moments
@@ -49,27 +57,34 @@
 \subsection*{Part 3}
 \begin{itemize}
   \item 49: \texttt{TMonths}: number of months in data of each village
+  \item 57: \texttt{T}: number of trimesters calculated from \texttt{TMonths}. $ceil(X)$ rounds each element of $X$ to the nearest integer greater than or equal to that element, and $./$ does element-wise right division.
+  \item 59: This line checks whether the number of elements of T is equal to the number of graphs. has same $assert(cond)$ throws an error if cond is false. $numel(A)$ returns the number of elements, n, in array A.
 \end{itemize}
 
 \subsection*{Part 4}
 \begin{itemize}
-  \item 63-69: Parameter grids: although explained in detail in the Supplementary Materials, not shown how they did it
-\end{itemize}
+  \item 63-69: Parameter grids: although explained in detail in the Supplementary Materials, not shown how they did it. 
+    Also, grid values differ from the supplementary material.
+    %Since every element of a matrix is contained in the array slice defined by dimensions 1 and 2.
+\end{itemize} 
 
 \subsection*{Part 5}
 \begin{itemize}
   \item 90: Load the network data, which contains adjacency matrices of 43 villages
+  \item 91: What and why do they do this here? (Element-wise X*X?) (Sorry for a silly questions.)
   \item 95-: For each village,
     \begin{itemize}
-      \item 101: Load the leader data: ID and dummy of being a leader or not
+      \item 101: Load the leader data: ID and dummy of being a leader or not (only use the latter)
       \item 106: Load the take-up data: Only dummy (maybe the same order as the one above?)
-      \item 107: \texttt{EmpRate} is the proportion of non-leaders who took up MF
+      \item 107: \texttt{EmpRate} is the proportion of non-leaders who took up MF ($\sim$ means what?)
       \item 110: \texttt{inGiant}??? 
-        Maybe the biggest cluster in the village?
-      \item 113-114: \texttt{d} = degree of network, \texttt{hermits} = households without any connections with other households (?)
-      \item 117: Load the covariates of the households (not sure which column corresponds to which variable, maybe in readme file or somewhere?)
-      \item 120: Select covariates to use (but in the end they used all the covariates in the data?)
-      \item 123-130: Restrict the sample to households belonging to the giant networks?
+        Maybe the biggest cluster in the village? (Yes, belong to largest component or not.)
+      \item 113-114: \texttt{d} = degree of network, \texttt{hermits} = households without any connections with other households (= isolates).
+        $sum(A,2)$ is a column vector containing the sum of each row of matrix A (2 is the dimension).
+      \item 117: Load the covariates of the households (not sure which column corresponds to which variable, maybe in readme file or somewhere?) 
+        (6 covariates, in the order of number of rooms in a household, number of beds, whether the household has private/government/no electricity, whether the household has own/common/no latrine, number of rooms per capita and number of beds per capita according to Readme file)
+      \item 120: Select covariates to use (but apparently in the end they used all the covariates in the data)
+      \item 123-130: Restrict the sample to households belonging to the giant networks and households of leaders (number of rows will be reduced). logical(A) converts A into an array of logical values. In the subsequent simulations, the authors seem to focus only on the giant component.
         \begin{itemize}
           \item 123: Leaders
           \item 124: Take-up
@@ -86,6 +101,7 @@
         Here, $X^2$ means $X * X$.
         (See \href{https://en.wikipedia.org/wiki/Adjacency_matrix#Matrix_powers}{here})
         \begin{itemize}
+          \item 133: $>0$ turns the elements of the matrix into binary number (0 or 1)
           \item 134-136: Ruling out households themselves (with two steps, they can always come back to themselves)
           \item 137: Ruling out households with distance 1 (think about a triangle)
         \end{itemize}
@@ -94,7 +110,7 @@
 
 \subsection*{Part 6}
 \begin{itemize}
-  \item 142-143: Logistic regression by using leaders to estimate $\beta$
+  \item 142-143: Logistic regression by using leaders to estimate $\beta$ (vector of 6 coefficient estimates)
 \end{itemize}
 
 \subsection*{Part 7}
@@ -103,6 +119,8 @@
     \begin{itemize}
       \item 153-160: Calculate moments at each grid of $q_N (= q_P)$
         \begin{itemize}
+          \item 154: \texttt{theta} is the choice of parameters $q_N$ and $q_P$
+          \item 155: \texttt{tic} starts stopwatch timer (\texttt{toc} ends timer) to measure elapsed time
           \item 156: Call the function \hyperref[divergence_model]{\texttt{divergence\_model}} which calculates moments
         \end{itemize}
     \end{itemize}
@@ -115,6 +133,7 @@
     \end{itemize}
   \item Note: In the calculations here, a matrix $D$ is obtained.
     This is a length($q_N$ grids)-by-length($q_P$ grids) matrix, and each element is a (\# villages)-by-(\# moments) matrix.
+  \item 181-183: Save the computed data in the mat format.
 \end{itemize}
 
 \subsection*{Part 8}
@@ -135,9 +154,10 @@
             (i) solve the GMM problem with an identity matrix as a weight to get the consistent estimate of parameters, and 
             (ii) get the weight in the way described above.
             Here, somehow authors set $q_N$ and $q_P$ and calculate the weight based on these parameters.
-            If these are not derived by consistent estimates, then the weight is inconsistent and thus the estimates in the second step will be biased as well.
+            If these are not derived by consistent estimates, then the weight is inconsistent and thus the estimates in the second step will be biased as well. ($q_N$ and $q_P$ seems to set by the fist-stage estimate \texttt{theta} via the same algorithm with identity matrix weighting according to the Supplementary Materials)
         \end{itemize}
-      \item twoStepOptimal == 0: use an identity matrix as the weight in the ``second'' step
+      \item twoStepOptimal == 0: use an identity matrix as the weight in the ``second'' step (\texttt{eye} function)
+            If these are not derived by consistent estimates, then the weight is inconsistent and thus the estimates in the second step will be biased as well.
     \end{itemize}
   \item 211-216: Obtain a new 4-dimension (length($q_N$ grids)-by-length($q_P$ grids)-by-(\# villages)-by-(\# moments))   $Dnew$ from a nested matrix $D$
   \item 223-259: Bootstrap (note: here in the bootstrap, randomly generated village weights are used, not that villages are randomly chosen with replacement)
@@ -156,6 +176,14 @@
     \end{itemize}
 \end{itemize}
 
+\section{\texttt{Main\_models\_2\_4.m}}\label{main_models_2_4}
+
+The same structure as \texttt{Main\_models\_1\_3.m}, but with $\lambda$ (endorsement effect). 
+
+\begin{itemize}
+	\item 66: The grid for $\lambda$ is determined. 
+	\item 68-73: The grid for $q_P, q_N$ are set here. What's the logic behind changing these grid based on whether to have $\lambda$?
+\end{itemize}
 
 \section{\texttt{divergence\_model.m}}\label{divergence_model}
 
@@ -172,13 +200,14 @@
   \item theta: parameter values ($q_N$, $q_P$)
   \item m: number of moments
   \item S: number of simulations
-  \item T: number of months
+  \item T: number of trimesters (or months/quarters)
   \item EmpRate: proportion of non-leaders who took up MF
   \item version: specification of which moments to use
 \end{itemize}
 
 \subsection*{Main part}
 \begin{itemize}
+  \item 14: Calculate the number of villages ($G$)
   \item 23-39: Calculate empirical and simulated moments
     \begin{itemize}
       \item 25: Calculate empirical moments, using a function \hyperref[moments]{\texttt{moments}}
@@ -187,8 +216,15 @@
           \item 30: Simulate the take-up of microfinance, using a function \hyperref[diffusion_model]{\texttt{diffusion\_model}}
           \item 31: Calculate simulated moments based on the simulated take-ups, using a function \hyperref[moments]{\texttt{moments}}
         \end{itemize}
-      \item 36: Take the different of empirical and simulated moments
+      \item 35: Calculate the mean of simulated moments
+      \item 36: Take the difference of empirical and simulated moments
     \end{itemize}
+\end{itemize}
+
+\subsection*{Outputs}
+\begin{itemize}
+  \item D: Calculated deviation (difference of empirical and simulated moments)
+  \item TimeSim: Just \texttt{zeros(G,S)}? Not used later?
 \end{itemize}
 
 \section{\texttt{moments.m}}\label{moments}
@@ -206,10 +242,39 @@
 \subsection*{Main part}
 \begin{itemize}
   \item 3: Declare a variable ``netstats'' which contains information of networks in each village (for the function \texttt{persistent}, see \href{https://www.mathworks.com/help/matlab/ref/persistent.html}{here})
+  \item 5: size(X,1) returns the length of 1st dimension, which is 43 (villages).
   \item 7-49: If a variable ``netstats'' is already defined, then almost skip the parts, but if not yet, then calculate each statistics of the networks (7-43)
     \begin{itemize}
-      \item 8: Use a function \hyperref[breadthdistRAL]{\texttt{breadthdistRAL}} to calculate ??? (R: ???, D: ???)
-      \item 
+      \item 8: Use a function \hyperref[breadthdistRAL]{\texttt{breadthdistRAL}} to compute a reachability matrix (R) and distance matrix (D).
+        D is the distance between each leader and household which is calculated with a function, \texttt{breadth.m}: 
+        By inputting \texttt{leaders}, the D matrix include distances from leaders. 
+      	\begin{itemize}
+      		\item I think this function calculates the distance between everyone in the data set. Not too sure.
+      	\end{itemize}
+      \item 10-11: Calculate the minimum and average distances from leaders
+      \item 13-22: Calculate the minimum distance from infected and non-infected leaders
+      	\begin{itemize}
+      		\item $.*$ does element-wise multiplication. 
+      		\item $infected.*leaders$ is a vector with elements that take the value one for infected leaders (leaders who took up microfinance). 
+      		\item $(1-infected).*leaders$ is a vector with elements that take the value one for non-infected leaders.
+      		\item 19: Detect the size of each row in the connection/adjacency matrix (CIJ) which is really \texttt{X}. 
+      	\end{itemize}
+      \item 22-24: I'm not sure if I understand this color stuff.
+      \item 24-27: Store calculated distances (matrices) in \texttt{netstats}
+      \item 29-31: Display the size of stored matrices with village index.
+      \item 32-34: Display matrices with binary elements which takes the value one when minimum distances is equal to 1 with village index.
+        \begin{itemize}
+      		\item 34: \texttt{source} is the index of the leader dummy being 1. 
+        \end{itemize}
+      \item 36-37: Calculate whether each household is neighbor to infected and non-infected leaders
+      \item 39: Calculate the degree
+      \item 40- : Measure the distance 
+        \begin{itemize}
+          \item 40: Calculate total number of edges
+          \item 41: ??
+          \item 42: Calculate total number of leaders
+          \item 43: Calculate the total number of leaders' edges ($leaders'*X$ is a vector of degrees of leaders, and $*leaders$ adds up those degrees)
+        \end{itemize}
     \end{itemize}
   \item 52-: Moments under different versions
     \begin{itemize}
@@ -218,6 +283,7 @@
           \item 54-62: ``Fraction of nodes that have no taking neighbors but are takers themselves'' (moment (2) in the paper)
             \begin{itemize}
               \item 56: Number of infected neighbors: \\
+                \texttt{ones(N,1)*infected'}: a matrix with indicators of infected households in each row (same row vector of infected households repeated n times)\\
                 \texttt{ones(N,1)*infected'}: a matrix with indicators of infected households in each row \\
                 $\Rightarrow$ \texttt{(ones(N,1)*infected').*X}: a matrix with indicators of infected neighbors for each household \\
                 $\Rightarrow$ \texttt{sum((ones(N,1)*infected').*X, 2)}: number of infected neighbors for each household
@@ -227,13 +293,13 @@
             \end{itemize}
           \item 64-69: ``Fraction of individuals that are infected in the neighborhood of infected leaders stats(1) = 0'' (moment (3) in the paper)
             \begin{itemize}
-              \item If \texttt{sum(netstats(j).neighborOfInfected) $>$ 0} (???), calculate the fraction (???)
-              \item Otherwise, just let the moment be $0$ 
+              \item If \texttt{sum(netstats(j).neighborOfInfected) $>$ 0} (there is at least one household who is neighbor to infected leaders), calculate the fraction \\ $\frac{\text{\# HH who are are infected in the neighborhood of infected leaders}}{\text{\# HH who are in the neighborhood of infected leaders}}$
+              \item Otherwise, just let the moment be $0$ (since the denominator of the above fraction will be $0$ in this case)
             \end{itemize}
-          \item 71-76: ``Fraction of individuals that are infected in the neighborhood of non-infected leaders)'' (moment (4) in the paper)
+          \item 71-76: ``Fraction of individuals that are infected in the neighborhood of non-infected leaders'' (moment (4) in the paper)
             \begin{itemize}
-              \item If \texttt{sum(netstats(j).neighborOfNonInfected) $>$ 0} (???), calculate the fraction (???)
-              \item Otherwise, just let the moment be $0$ 
+              \item If \texttt{sum(netstats(j).neighborOfNonInfected) $>$ 0} (there is at least one household who is neighbor to non-infected leaders), calculate the fraction \\ $\frac{\text{\# HH who are are infected in the neighborhood of non-infected leaders}}{\text{\# HH who are in the neighborhood of non-infected leaders}}$
+              \item Otherwise, just let the moment be $0$ (since the denominator of the above fraction will be $0$ in this case)
             \end{itemize}
           \item 78-82: ``Covariance of individuals taking with share of neighbors taking'' (moment (5) in the paper)
             \begin{itemize}
@@ -242,6 +308,7 @@
                 $\frac{\text{\# infected neighbors}}{\text{\# neighbors}}$
               \item 81: NonHermitTakers: Indicator of non-isolated households who took up
               \item 82: $\text{moment} = \frac{\sum_{i: \text{non-isolated}} (\text{Take-up})_i \times (\text{Share of taking neighbors})_i}{\text{\# Non-isolated households}}$
+              \item Covariance without subtracting means?
             \end{itemize}
           \item 82-88: ``Covariance of individuals taking with share of second neighbors taking'' (moment (6) in the paper)
             \begin{itemize}
@@ -252,25 +319,37 @@
             \end{itemize}
         \end{itemize}
       \item 91-112: Case2 (moments (2), (5), and (6) in the paper):
-        \begin{itemize}
           \item 92-100: ``Fraction of nodes that have no taking neighbors but are takers themselves'' (moment (2) in the paper)
           \item 102-106: ``Covariance of individuals taking with share of neighbors taking'' (moment (5) in the paper)
           \item 110-112: ``Covariance of individuals taking with share of second neighbors taking'' (moment (6) in the paper)
-        \end{itemize}
       \item 115-141: Case3 (moments (2), (5), and (6) in the paper, same as case 2, but purged of leader injection points):
-        \begin{itemize}
           \item 117: a variable that denotes whether a node is a leader
-        \end{itemize}
       \item 143-169: Case4 (moments (2), (5), and (6) in the paper, same as case 2, but purged of all leader points):
-        \begin{itemize}
           \item 117: a variable that denotes whether a node is a leader
           \item 166-167: Moment (6), but second neighbors who are leaders are not taken into account (see line 167)
-        \end{itemize}
     \end{itemize}
 \end{itemize}
 
+\subsection*{Outputs}
+\begin{itemize}
+	\item stats: a vector of m calculated moments for the village j
+\end{itemize}
+
 \section{\texttt{breadthdistRAL.m}}\label{breadthdistRAL}
-TBD...
+
+The source of this function is the Brain Connectivity Toolbox (brain-connectivity-toolbox.net) which is a MATLAB toolbox for complex-network analysis of structural and functional brain-connectivity data sets. (See \href{https://sites.google.com/site/bctnet/}{here}). It seems like the authors modified \texttt{breadthdist.m} to add \texttt{dummies} in the arguments. \texttt{breadthdist.m} is slower but less memory intensive than "reachdist.m".
+
+\subsection*{Arguments}
+\begin{itemize}
+	\item CIJ: connection/adjacency matrix
+	\item dummies: Dummy vector of length N for which you wish to compute the distance and reachability matrices.
+\end{itemize}
+
+\subsection*{Outputs}
+\begin{itemize}
+	\item R: reachability matrix, which describes reachability between all pairs of nodes. An entry (u,v)=1 means that there exists a path from node u to node v; alternatively (u,v)=0.
+	\item D: distance matrix, which contains lengths of shortest paths between all pairs of nodes. An entry (u,v) represents the length of shortest path from node u to  node v. The average shortest path length is the characteristic path length of the network.
+\end{itemize}
 
 \section{\texttt{diffusion\_model.m}}\label{diffusion_model}
 
