@@ -89,4 +89,4 @@ passwords.*
 password/
 passwords/
 
-*.fdb_latexmk
+**/*.fdb_latexmk
