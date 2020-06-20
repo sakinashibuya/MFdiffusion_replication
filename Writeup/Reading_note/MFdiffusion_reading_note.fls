@@ -1,4 +1,4 @@
-PWD /Users/mizuhirosuzuki/Documents/GitHub/MFdiffusion_replication/Hiro/Writeup
+PWD /Users/mizuhirosuzuki/Documents/GitHub/MFdiffusion_replication/Writeup/Reading_note
 INPUT /usr/local/texlive/2020/texmf.cnf
 INPUT /usr/local/texlive/2020/texmf-dist/web2c/texmf.cnf
 INPUT /usr/local/texlive/2020/texmf-var/web2c/pdftex/pdflatex.fmt
@@ -66,8 +66,6 @@ INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.st
 INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
-INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/natbib/natbib.sty
-INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/natbib/natbib.sty
 INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/hyperref/hyperref.sty
 INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/hyperref/hyperref.sty
 INPUT /usr/local/texlive/2020/texmf-dist/tex/generic/pdfescape/pdfescape.sty
@@ -100,6 +98,8 @@ INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck
 INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/rerunfilecheck/rerunfilecheck.sty
 INPUT /usr/local/texlive/2020/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty
 INPUT /usr/local/texlive/2020/texmf-dist/tex/generic/uniquecounter/uniquecounter.sty
+INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/natbib/natbib.sty
+INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/natbib/natbib.sty
 INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/bbm-macros/bbm.sty
 INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/bbm-macros/bbm.sty
 INPUT /usr/local/texlive/2020/texmf-dist/tex/latex/tools/multicol.sty
@@ -253,6 +253,7 @@ INPUT MFdiffusion_reading_note.toc
 INPUT /usr/local/texlive/2020/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
 INPUT /usr/local/texlive/2020/texmf-dist/fonts/tfm/public/cm/cmtt10.tfm
 OUTPUT MFdiffusion_reading_note.toc
+INPUT /usr/local/texlive/2020/texmf-dist/fonts/tfm/public/cm/cmtt12.tfm
 INPUT /usr/local/texlive/2020/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm
 INPUT /usr/local/texlive/2020/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm
 INPUT /usr/local/texlive/2020/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm
@@ -262,7 +263,6 @@ INPUT /usr/local/texlive/2020/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam5
 INPUT /usr/local/texlive/2020/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
 INPUT /usr/local/texlive/2020/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm
 INPUT /usr/local/texlive/2020/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm5.tfm
-INPUT /usr/local/texlive/2020/texmf-dist/fonts/tfm/public/cm/cmtt12.tfm
 INPUT /usr/local/texlive/2020/texmf-dist/fonts/tfm/public/cm/cmbx12.tfm
 INPUT /usr/local/texlive/2020/texmf-var/fonts/map/pdftex/updmap/pdftex.map
 INPUT /usr/local/texlive/2020/texmf-dist/fonts/tfm/public/cm/cmtt8.tfm

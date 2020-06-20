@@ -1,5 +1,5 @@
 # Fdb version 3
-["pdflatex"] 1592631860 "MFdiffusion_reading_note.tex" "MFdiffusion_reading_note.pdf" "MFdiffusion_reading_note" 1592631866
+["pdflatex"] 1592664573 "MFdiffusion_reading_note.tex" "MFdiffusion_reading_note.pdf" "MFdiffusion_reading_note" 1592664574
   "/usr/local/texlive/2020/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc" 1136849721 2900 1537cc8184ad1792082cd229ecc269f4 ""
   "/usr/local/texlive/2020/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2020/texmf-dist/fonts/tfm/jknappen/ec/tcrm1000.tfm" 1136768653 1536 e07581a4bb3136ece9eeb4c3ffab8233 ""
@@ -171,13 +171,13 @@
   "/usr/local/texlive/2020/texmf-var/fonts/map/pdftex/updmap/pdftex.map" 1586288239 4811913 0be9a7e86c70a26e5e3042966bcd7097 ""
   "/usr/local/texlive/2020/texmf-var/web2c/pdftex/pdflatex.fmt" 1586288259 2432462 fd0fa20e9a3cb5f8169fd0ba1c955158 ""
   "/usr/local/texlive/2020/texmf.cnf" 1586288231 577 d60164b4589a341208aff7a667fbbdcb ""
-  "MFdiffusion_reading_note.aux" 1592631865 1755 b305d0ce895dc7fe745e2f7fb9d4d077 "pdflatex"
-  "MFdiffusion_reading_note.out" 1592631865 302 33b65a6b77970033e9addd0acc1c4a0e "pdflatex"
-  "MFdiffusion_reading_note.tex" 1592631858 18332 53693e45a5a31c7f9bf2a798505824e1 ""
-  "MFdiffusion_reading_note.toc" 1592631865 468 1b85509a18888e23668e447bca910b47 "pdflatex"
+  "MFdiffusion_reading_note.aux" 1592664574 2171 ab08d787b8ffa2251f8fc79e70d3cf4f "pdflatex"
+  "MFdiffusion_reading_note.out" 1592664574 424 bc93f469cd1bd8603bf31877891dd5f3 "pdflatex"
+  "MFdiffusion_reading_note.tex" 1592664571 25268 75e1e53cccb69708679f1a6ab409fca5 ""
+  "MFdiffusion_reading_note.toc" 1592664574 640 5aa6b02783fdac91f71bddfdd6aee773 "pdflatex"
   (generated)
   "MFdiffusion_reading_note.aux"
+  "MFdiffusion_reading_note.out"
+  "MFdiffusion_reading_note.toc"
   "MFdiffusion_reading_note.log"
   "MFdiffusion_reading_note.pdf"
-  "MFdiffusion_reading_note.toc"
-  "MFdiffusion_reading_note.out"

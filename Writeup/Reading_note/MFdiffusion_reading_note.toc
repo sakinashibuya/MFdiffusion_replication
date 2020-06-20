@@ -1,6 +1,8 @@
 \contentsline {section}{\numberline {1}}{1}{section.1}%
 \contentsline {section}{\numberline {2}\texttt {Main\_models\_1\_3.m}}{1}{section.2}%
-\contentsline {section}{\numberline {3}\texttt {divergence\_model.m}}{3}{section.3}%
-\contentsline {section}{\numberline {4}\texttt {moments.m}}{4}{section.4}%
-\contentsline {section}{\numberline {5}\texttt {breadthdistRAL.m}}{6}{section.5}%
-\contentsline {section}{\numberline {6}\texttt {diffusion\_model.m}}{6}{section.6}%
+\contentsline {section}{\numberline {3}\texttt {Main\_models\_1\_3.m}}{1}{section.3}%
+\contentsline {section}{\numberline {4}\texttt {Main\_models\_2\_4.m}}{4}{section.4}%
+\contentsline {section}{\numberline {5}\texttt {divergence\_model.m}}{4}{section.5}%
+\contentsline {section}{\numberline {6}\texttt {moments.m}}{5}{section.6}%
+\contentsline {section}{\numberline {7}\texttt {breadthdistRAL.m}}{7}{section.7}%
+\contentsline {section}{\numberline {8}\texttt {diffusion\_model.m}}{8}{section.8}%
