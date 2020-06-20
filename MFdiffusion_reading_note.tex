@@ -10,7 +10,9 @@
 \usepackage[dvipdfmx, hiresbb]{graphicx}
 \usepackage[outdir=./]{epstopdf}
 \usepackage{natbib}
+
 \usepackage{hyperref}
+
 \usepackage[pdftex]{hyperref}
 \hypersetup{colorlinks = true,
                 citecolor = {black}}
@@ -165,7 +167,7 @@ Notes:
           \item 203: Calculate the outer product of the moments, divided by the number of villages
           \item 204: Take the inverse of the above expression, which will be the weight in the second step
           \item \textbf{Note}: I guess usually people 
-            (i) solve the GMM problem with an identity matrix as a weight to get the consistent estimate of parameters, and 
+            (i)solve the GMM problem with an identity matrix as a weight to get the consistent estimate of parameters, and 
             (ii) get the weight in the way described above.
             Here, somehow authors set $q_N$ and $q_P$ and calculate the weight based on these parameters.
             If these are not derived by consistent estimates, then the weight is inconsistent and thus the estimates in the second step will be biased as well. ($q_N$ and $q_P$ seems to set by the fist-stage estimate \texttt{theta} via the same algorithm with identity matrix weighting according to the Supplementary Materials)
