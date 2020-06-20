@@ -10,7 +10,10 @@
 \usepackage[dvipdfmx, hiresbb]{graphicx}
 \usepackage[outdir=./]{epstopdf}
 \usepackage{natbib}
+
 \usepackage{hyperref}
+
+\usepackage[pdftex]{hyperref}
 \hypersetup{colorlinks = true,
                 citecolor = {black}}
 \usepackage{bbm}
@@ -29,6 +32,9 @@
 
 \section{}
 
+\section{\texttt{Main\_models\_1\_3.m}}\label{main_models_1_3}
+
+Notes:
 \begin{itemize}
   \item Main Matlab file: \texttt{"GMMDiffusion/Main\_models\_1\_3"} for model without $\lambda$ (endorsement effects) and \texttt{"GMMDiffusion/Main\_models\_2\_4"} for model with $\lambda$
 \end{itemize}
@@ -38,6 +44,11 @@
 \subsection*{Part 0}
 \begin{itemize}
   \item 26: 2 model types: modelType == 1 for $q_N = q_P$ and == 3 for $q_N \ne q_P$
+\end{itemize}
+
+\subsection{Part 1}
+\begin{itemize}
+	\item 29: Picking 43 BSS villages
 \end{itemize}
 
 \subsection*{Part 2}
@@ -56,6 +67,11 @@
 \subsection*{Part 4}
 \begin{itemize}
   \item 63-69: Parameter grids: although explained in detail in the Supplementary Materials, not shown how they did it. The grid of $q_N$ is slightly different from the Supplementary Materials...
+\end{itemize} since every element of a matrix is contained in the array slice defined by dimensions 1 and 2.
+
+\subsection*{Part 4}
+\begin{itemize}
+  \item 63-69: Parameter grids: although explained in detail in the Supplementary Materials, not shown how they did it. (Grid values differ from the supplementary material.)
 \end{itemize}
 
 \subsection*{Part 5}
@@ -72,6 +88,18 @@
       \item 117: Load the covariates of the households (not sure which column corresponds to which variable, maybe in readme file or somewhere?) (6 covariates, in the order of number of rooms in a household, number of beds, whether the household has private/government/no electricity, whether the household has own/common/no latrine, number of rooms per capita and number of beds per capita according to Readme file)
       \item 120: Select covariates to use (but in the end they used all the covariates in the data?) (Yes, I think so because they set "1:6" (all covariates) in this line)
       \item 123-130: Restrict the sample to households belonging to the giant networks and households of leaders (number of rows will be reduced). logical(A) converts A into an array of logical values. In the subsequent simulations, the authors seem to focus only on the giant component.
+  \item 90: Load the network data, which contains adjacency matrices of 43 villages
+  \item 91: What and why do they do this here? (Element-wise X*X?) (Sorry for a silly questions.)
+  \item 95-: For each village,
+    \begin{itemize}
+      \item 101: Load the leader data: ID and dummy of being a leader or not
+      \item 106: Load the take-up data: Only dummy (maybe the same order as the one above?)
+      \item 107: \texttt{EmpRate} is the proportion of non-leaders who took up MF
+      \item 110: \texttt{inGiant} is a connected component of a network that contains a finite fraction of the entire nodes. (\href{https://en.wikipedia.org/wiki/Giant_component}{Wiki}; This may be \href{https://www.futurelearn.com/courses/social-media/0/steps/16048}{a better reference.}) So, I think this is like the fraction of sampled nodes in a giant component. It's not clear how 'giant' is defined. Maybe the biggest cluster in the village?
+      \item 113-114: \texttt{d} = degree of network, \texttt{hermits} = households without any connections with other households, which is assigned 1 if the column sum from the adjacency matrix is 0 (This is \texttt{d}). (i.e. no connection).
+      \item 117: Load the covariates of the households (not sure which column corresponds to which variable, maybe in readme file or somewhere?) The Read Me file has a list of covariates on P1, I guess the variables are stores in the same order of variables listed in the Read Me file?
+      \item 120: Select covariates to use (but in the end they used all the covariates in the data?) It seems that they use all 6 of them that are included in the data set.
+      \item 123-130: Restrict the sample to households belonging to the giant networks?
         \begin{itemize}
           \item 123: Leaders
           \item 124: Take-up
@@ -98,6 +126,7 @@
 \subsection*{Part 6}
 \begin{itemize}
   \item 142-143: Logistic regression by using leaders to estimate $\beta$ (vector of 6 coefficient estimates)
+  \item 142-143: Logistic regression by using leaders to estimate $\beta$
 \end{itemize}
 
 \subsection*{Part 7}
@@ -144,6 +173,9 @@
             If these are not derived by consistent estimates, then the weight is inconsistent and thus the estimates in the second step will be biased as well. ($q_N$ and $q_P$ seems to set by the fist-stage estimate \texttt{theta} via the same algorithm with identity matrix weighting according to the Supplementary Materials)
         \end{itemize}
       \item twoStepOptimal == 0: use an identity matrix as the weight in the ``second'' step (\texttt{eye} function)
+            If these are not derived by consistent estimates, then the weight is inconsistent and thus the estimates in the second step will be biased as well.
+        \end{itemize}
+      \item twoStepOptimal == 0: use an identity matrix as the weight in the ``second'' step
     \end{itemize}
   \item 211-216: Obtain a new 4-dimension (length($q_N$ grids)-by-length($q_P$ grids)-by-(\# villages)-by-(\# moments))   $Dnew$ from a nested matrix $D$
   \item 223-259: Bootstrap (note: here in the bootstrap, randomly generated village weights are used, not that villages are randomly chosen with replacement)
@@ -162,6 +194,14 @@
     \end{itemize}
 \end{itemize}
 
+\section{\texttt{Main\_models\_2\_4.m}}\label{main_models_2_4}
+
+The same structure as \texttt{Main\_models\_1\_3.m}, but with $\lambda$ (endorsement effect). 
+
+\begin{itemize}
+	\item 66: The grid for $\lambda$ is determined. 
+	\item 68-73: The grid for $q_P, q_N$ are set here. What's the logic behind changing these grid based on whether to have $\lambda$?
+\end{itemize}
 
 \section{\texttt{divergence\_model.m}}\label{divergence_model}
 
@@ -240,6 +280,20 @@
       \item 41: ??
       \item 42: Calculate total number of leaders
       \item 43: Calculate the total number of leaders' edges ($leaders'*X$ is a vector of degrees of leaders, and $*leaders$ adds up those degrees)
+
+\subsection*{Main part}
+\begin{itemize}
+  \item 3: Declare a variable ``netstats'' which contains information of networks in each village (for the function \texttt{persistent}, see \href{https://www.mathworks.com/help/matlab/ref/persistent.html}{here})
+  \item 7-49: If a variable ``netstats'' is already defined, then almost skip the parts, but if not yet, then calculate each statistics of the networks (7-43)
+    \begin{itemize}
+      \item 8: Use a function \hyperref[breadthdistRAL]{\texttt{breadthdistRAL}} to calculate a matrix of R and D. R is ??. D is the distance between each leader and household which is calculated with a function, \texttt{breadth.m}: 
+      	\begin{itemize}
+      		\item I think this function calculates the distance between everyone in the data set. Not too sure.
+      		\item 19: Detect the size of each row in the connection/adjacency matrix (CIJ) which is really \texttt{X}. 
+      		\item 22-24: I'm not sure if I understand this color stuff.
+      		\item 34: \texttt{source} is the index of the leader dummy being 1. 
+      	\end{itemize}
+      \item 40- : Measure the distance 
     \end{itemize}
   \item 52-: Moments under different versions
     \begin{itemize}
@@ -249,6 +303,7 @@
             \begin{itemize}
               \item 56: Number of infected neighbors: \\
                 \texttt{ones(N,1)*infected'}: a matrix with indicators of infected households in each row (same row vector of infected households repeated n times)\\
+                \texttt{ones(N,1)*infected'}: a matrix with indicators of infected households in each row \\
                 $\Rightarrow$ \texttt{(ones(N,1)*infected').*X}: a matrix with indicators of infected neighbors for each household \\
                 $\Rightarrow$ \texttt{sum((ones(N,1)*infected').*X, 2)}: number of infected neighbors for each household
               \item 58-59: If there is any household who are linked with other households (netstats(j).degree $>$ 0) but has no infected neighbors (infected Neighbors == 0), 
