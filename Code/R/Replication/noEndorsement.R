@@ -169,3 +169,205 @@ diffusion_model <- function(parms, Z, Betas, X, leaders, j, T, EmpRate){
   
 }
 
+# moments ------------
+moments <- function(X, leaders, infected, Sec, j, version){
+  N <- nrow(X)
+
+  #####
+
+  #####
+
+  if (case == 1){
+    # 1. Fraction of nodes that have no taking neighbors but are takers themselves
+    infectedNeighbors <- rowSums((ones(N, 1) * t(infected)) * X) # Number of infected neighbors
+
+    if (sum(infectedNeighbors == 0 & netstats[j].degree > 0) > 0){
+      stats_1 <- sum((infectedNeighbors == 0 & infected == 1 & netstats[j].degree > 0)) / sum(infectedNeighbors == 0 & netstats[j].degree > 0)
+    } else if (sum(infectedNeighbors == 0 & netstats[j].degree > 0) == 0){
+      stats_1 <- 0
+    }
+
+    # 2. Fraction of individuals that are infected in the neighborhood of infected leaders stats_1 == 0
+    if (sum(netstas[j].neighborOfInfected) > 0){
+      stats_2 <- sum(infected * netstats[j].neighborOfInfected) / sum(netstats[j].neighborOfInfected)
+    } else {
+      stats_2 <- 0
+    }
+
+    # 3. Fraction of individuals that are infected in the neighborhood of non-infected leaders
+    if (sum(netstats[j].neighborOfInfected) > 0){
+      stats_3 <- sum(infected * netstats[j].neighborOfNonInfected) / sum(netstats[j].neighborOfNonInfected)
+    } else {
+      stats_3 <- 0
+    }
+
+    # 4. Covariance of individuals taking with share of neighbors taking
+    NonHermits = (netstats[j].degree > 0)
+    ShareofTakingNeighbors = infectedNeighbors[NonHermits] / netstats[j].degree[NonHermits]
+    NonHermitTakers = infected[NonHermits]
+    stats_4 <- sum(NonHermitTakers * ShareofTakingNeighbors) / sum(NonHermits)
+
+    # 5. Covariance of individuals taking with share of second neighbors taking
+    infectedSecond = rowSums(Sec * outer(infected, rep(1, N)))
+    ShareofSecond = infectedSecond[NonHermits] / netstats[j].degree[NonHermits]
+    stats_5 <- sum(NonHermitTakers * ShareofSecond) / sum(NonHermits)
+
+    return(c(stats_1, stats_2, stats_3, stats_4, stats_5))
+
+  } else if (case == 2){
+    # 1. Fraction of nodes that have no taking neighbors but are takers themselves
+    infectedNeighbors <- rowSums((ones(N, 1) * t(infected)) * X) # Number of infected neighbors
+
+    if (sum(infectedNeighbors == 0 & netstats[j].degree > 0) > 0){
+      stats_1 <- sum((infectedNeighbors == 0 & infected == 1 & netstats[j].degree > 0)) / sum(infectedNeighbors == 0 & netstats[j].degree > 0)
+    } else if (sum(infectedNeighbors == 0 & netstats[j].degree > 0) == 0){
+      stats_1 <- 0
+    }
+
+    # 2. Covariance of individuals taking with share of neighbors taking
+    NonHermits = (netstats[j].degree > 0)
+    ShareofTakingNeighbors = infectedNeighbors[NonHermits] / netstats[j].degree[NonHermits]
+    NonHermitTakers = infected[NonHermits]
+    stats_2 <- sum(NonHermitTakers * ShareofTakingNeighbors) / sum(NonHermits)
+
+    # 3. Covariance of individuals taking with share of second neighbors taking
+    infectedSecond = rowSums(Sec * outer(infected, rep(1, N)))
+    ShareofSecond = infectedSecond[NonHermits] / netstats[j].degree[NonHermits]
+    stats_3 <- sum(NonHermitTakers * ShareofSecond) / sum(NonHermits)
+
+    return(c(stats_1, stats_2, stats_3))
+
+  } else if (case == 3){
+    # same as case 2, but purged ofleader injection points.
+    leaderTrue = (leaders > 0) # a variable that denotes whether a node is either a leader
+
+    # 1. Fraction of nodes that have no taking neighbors but are takers themselves
+    infectedNeighbors <- rowSums((ones(N, 1) * t(infected)) * X) # Number of infected neighbors
+
+    if (sum(infectedNeighbors == 0 & netstats[j].degree > 0) > 0){
+      stats_1 <- sum((infectedNeighbors == 0 & (leaderTrue == 0) & infected == 1 & netstats[j].degree > 0)) / sum(infectedNeighbors == 0 & netstats[j].degree > 0)
+    } else if (sum(infectedNeighbors == 0 & (leaderTrue == 0) & netstats[j].degree > 0) == 0){
+      stats_1 <- 0
+    }
+
+    # 2. Covariance of individuals taking with share of neighbors taking
+    NonHermits = (netstats[j].degree > 0)
+    NonHermitsNonLeaders = (NonHermits & (1 - leaderTrue)) # not isolates, not leaders
+
+    ShareofTakingNeighbors = infectedNeighbors[NonHermitsNonLeaders] / netstats[j].degree[NonHermitsNonLeaders]
+    NonHermitTakers = infected[NonHermitsNonLeaders]
+    stats_2 <- sum(NonHermitTakers * ShareofTakingNeighbors) / sum(NonHermitsNonLeaders)
+
+    # 3. Covariance of individuals taking with share of second neighbors taking
+    infectedSecond = rowSums(Sec * outer(infected, rep(1, N)))
+    ShareofSecond = infectedSecond[NonHermitsNonLeaders] / netstats[j].degree[NonHermitsNonLeaders]
+    stats_3 <- sum(NonHermitTakers * ShareofSecond) / sum(NonHermitsNonLeaders)
+
+    return(c(stats_1, stats_2, stats_3))
+
+  } else if (case == 4){
+    # same as case 3, but purged of ALL leader nodes.
+    leaderTrue = (leaders > 0) # a variable that denotes whether a node is either a leader
+        
+    # 1. Fraction of nodes that have no taking neighbors but are takers themselves
+    infectedNeighbors <- rowSums((ones(N, 1) * t(infected)) * X %*% (1 - leaderTrue)) # Number of infected neighbors
+
+    if (sum(infectedNeighbors == 0 & netstats[j].degree > 0) > 0){
+      stats_1 <- sum((infectedNeighbors == 0 & (leaderTrue == 0) & infected == 1 & netstats[j].degree > 0)) / sum(infectedNeighbors == 0 & netstats[j].degree > 0)
+    } else if (sum(infectedNeighbors == 0 & (leaderTrue == 0) & netstats[j].degree > 0) == 0){
+      stats_1 <- 0
+    }
+
+    # 2. Covariance of individuals taking with share of neighbors taking
+    NonHermits = (netstats[j].degree > 0)
+    NonHermitsNonLeaders = (NonHermits & (1 - leaderTrue)) # not isolates, not leaders
+
+    ShareofTakingNeighbors = infectedNeighbors[NonHermitsNonLeaders] / netstats[j].degree[NonHermitsNonLeaders]
+    NonHermitTakers = infected[NonHermitsNonLeaders]
+    stats_2 <- sum(NonHermitTakers * ShareofTakingNeighbors) / sum(NonHermitsNonLeaders)
+
+    # 3. Covariance of individuals taking with share of second neighbors taking
+    infectedSecond = rowSums(Sec * outer(infected, rep(1, N)) %*% (1 - leaderTrue))
+    ShareofSecond = infectedSecond[NonHermitsNonLeaders] / netstats[j].degree[NonHermitsNonLeaders]
+    stats_3 <- sum(NonHermitTakers * ShareofSecond) / sum(NonHermitsNonLeaders)
+
+    return(c(stats_1, stats_2, stats_3))
+
+  }
+
+}
+
+# breadthdistRAL -------------------------
+
+CIJ <- X[[1]][[1]]
+dummies <- leaders[[1]]
+
+breadthdistRAL <- function(CIJ, dummies){
+  N <- nrow(CIJ)
+
+  D <- matrix(rep(0, N * N), N, N)
+  for (i in seq_along(dummies)){
+    if (dummies[i] != 0){
+      D[, i] <- breadth(CIJ, i)
+    }
+  }
+
+  # replace zeros with 'Inf's
+  D[is.infinite(D)] <- 999999
+
+  # construct R
+  R <- as.double(D[D != 999999]) # ???
+
+  return(list(R, D))
+}
+
+# breadth -------------------------
+
+source <- 2
+
+breadth <- function(CIJ, source){
+  N <- nrow(CIJ)
+
+  # colors: white, gray, black
+  white <- 0
+  gray <- 1
+  black <- 2
+
+  # initialize colors
+  color <- t(rep(0, N))
+  # initialize distances
+  distance <- Inf * t(rep(1, N))
+  # initialize branches
+  branch <- t(rep(0, N))
+
+  # start on vertex 'source'
+  color[source] <- gray
+  distance[source] <- 0
+  branch[source] <- -1
+  Q <- source
+
+  # keep going until the entire graph is explored
+  while (length(Q) > 0){
+    u <- Q[1]
+    ns <- (CIJ[u,] > 0)
+    for (v in seq(ns)){
+      if (distance[v] == 0){
+        distance[v] <- distance[u] + 1
+      }
+      if (color[v] == white){
+        color[v] <- gray
+        distance[v] <- distance[u] + 1
+        branch[v] <- u
+        Q <- c(Q, v)
+      }
+    }
+    Q <- Q[2:length(Q)] # ??
+    color[u] <- black
+  }
+  
+  return(list(distance, branch))
+
+}
+
+
+
