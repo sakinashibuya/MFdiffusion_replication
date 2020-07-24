@@ -94,7 +94,7 @@ Betas <- glm_res$coefficients
 # Model 3 = qN, qP
 # This function relies on diffusion_model as the transmission process and moments
 
-divergence_model <- function(X, Z, Betas, leaders, TakeUp, Sec, Theta, m, S, T, EmpRate, version){
+divergence_model <- function(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, T, EmpRate, version){
 
   # Parameters
   G <- length(X)
@@ -112,7 +112,7 @@ divergence_model <- function(X, Z, Betas, leaders, TakeUp, Sec, Theta, m, S, T, 
     # Compute simulated moments
     SimulatedMoments <- matrix(0, S, m)
     for (s in seq(S)){
-      infectedSIM <- diffusion_model(theta, Z[[g]], Betas, X[[g]][[1]], leaders[[g]], g, T[g], EmpRate[g])
+      infectedSIM <- diffusion_model(theta, Z[[g]], Betas, X[[g]][[1]], leaders[[g]], g, T[g], EmpRate[[g]])
       SimulatedMoments[s,] <- moments(X[[g]][[1]], leaders[[g]], infectedSIM, Sec[[g]], g, version)
     }
     
@@ -160,7 +160,7 @@ diffusion_model <- function(parms, Z, Betas, X, leaders, j, T, EmpRate){
     contagionlikelihood <- X[contagious,] * outer(transmitPROB[contagious], rep(1, N))
     
     # Step 3
-    contagious <- ((t(contagionlikelihood > matrix(runif(C * N), C, N)) %*% rep(1, C) > 0) | contagiousbefore)
+    contagious <- ((t(contagionlikelihood > matrix(runif(C * N), N, C)) %*% rep(1, C) > 0) | contagiousbefore)
     dynamicInfection[t] <- sum(infectedbefore) / N
     
   }
@@ -179,7 +179,7 @@ moments <- function(X, leaders, infected, Sec, j, version){
 
   if (case == 1){
     # 1. Fraction of nodes that have no taking neighbors but are takers themselves
-    infectedNeighbors <- rowSums((ones(N, 1) * t(infected)) * X) # Number of infected neighbors
+    infectedNeighbors <- rowSums(matrix(1,N,1) %*% t(infected) * X) # Number of infected neighbors
 
     if (sum(infectedNeighbors == 0 & netstats[j].degree > 0) > 0){
       stats_1 <- sum((infectedNeighbors == 0 & infected == 1 & netstats[j].degree > 0)) / sum(infectedNeighbors == 0 & netstats[j].degree > 0)
