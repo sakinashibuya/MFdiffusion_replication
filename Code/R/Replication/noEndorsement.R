@@ -6,7 +6,11 @@ packages <- c(
   "R.matlab",
   "tidyverse",
   "igraph",
-  "pracma"
+  "pracma",
+  "ggplot2",
+  "plotly",
+  "dqrng",
+  "Matrix"
 )
 
 not_installed <- !packages %in% installed.packages()
@@ -19,6 +23,22 @@ if (user == "Hiro"){
   project_path <- "/Users/mizuhirosuzuki/Dropbox/MFdiffusion_replication/"
 }
 
+# random seed
+dqRNGkind("Xoroshiro128+")
+dqset.seed(453779)
+# Which moment conditions to use
+case <- 1
+# Whether first step or second step (0 = first step, 1 = secodn step)
+twoStepOptimal <- 0
+# Number of simulations
+S <- 75
+# Time span for one period
+timeVector <- 'trimesters'
+# Model type (1 -> qN = qP, 3 -> qN \ne qP)
+modelType <- 1
+# Whether bootstrap step or not (0 = No, 1 = Yes)
+bootstrap <- 0
+
 # --------------------------
 
 # Village indices used for analyses ----------------
@@ -28,7 +48,6 @@ vills <- c(1:4, 6, 9, 12, 15, 19:21, 23:25, 29, 31:33, 36,
 num_vills <- length(vills)
 
 # Select moments
-case <- 1
 
 if (case == 1){
   m <- 5
@@ -41,8 +60,6 @@ if (case == 1){
 }
 
 # Select time vector and number of repetitions per trial --------------
-# Number of simulations
-S <- 75
 # Months
 TMonths <- c(31, 35, 15, 35, 13, 2, 32, 5, 
              31, 35, 31, 29, 19, 22, 25, 25, 
@@ -50,7 +67,6 @@ TMonths <- c(31, 35, 15, 35, 13, 2, 32, 5,
              17, 13, 19, 20, 20, 19, 22, 14, 
              12, 15, 10, 19, 18, 18, 19, 19, 19, 17, 17)
 
-timeVector <- 'trimesters'
 if (timeVector == 'months'){
     t_period <- TMonths + 1
 } else if (timeVector == 'quarters'){
@@ -120,7 +136,6 @@ for (i in seq_along(vills)){
 
 # Select parameter grid --------------------
 
-modelType <- 3
 if (modelType == 1){
   qN <- c(seq(0, 0.01, 0.001), seq(0.05, 1, 0.05))
 } else if (modelType == 3){
@@ -330,7 +345,7 @@ diffusion_model <- function(parms, Z, Betas, X, leaders, j, t_period, EmpRate){
   contagious <- leaders # Newly informed/contagious.
   dynamicInfection <- rep(0, t_period) # Will be a vector that tracks the infection rate for the number of periods it takes place
   
-  x <- matrix(runif(N * t_period), N, t_period)
+  x <- matrix(dqrunif(N * t_period), N, t_period)
   t <- 1
   for (t in seq(t_period)){
     qNt <- qN
@@ -350,9 +365,13 @@ diffusion_model <- function(parms, Z, Betas, X, leaders, j, t_period, EmpRate){
     contagionlikelihood <- X[contagious,] * outer(transmitPROB[contagious], rep(1, N))
     
     # Step 3
-    contagious <- ((t(contagionlikelihood > matrix(runif(C * N), C, N)) %*% rep(1, C) > 0) | contagiousbefore)
+    # start_time <- Sys.time()
+    contagious <- ((colSums(contagionlikelihood > matrix(dqrunif(C * N), C, N)) > 0) | contagiousbefore)
+    # contagious <- ((t(contagionlikelihood > matrix(dqrunif(C * N), C, N)) %*% rep(1, C) > 0) | contagiousbefore)
     dynamicInfection[t] <- sum(infectedbefore) / N
-    
+    # end_time <- Sys.time()
+    # print(end_time - start_time)
+
   }
   
   return(list(infectedbefore, dynamicInfection, contagious))
@@ -360,7 +379,7 @@ diffusion_model <- function(parms, Z, Betas, X, leaders, j, t_period, EmpRate){
 }
 
 # test
-diffusion_model(c(0.3, 0.1), Z[[1]], Betas, X[[1]][[1]], leaders[[1]], 1, t_period[1], EmpRate[[1]])
+system.time(diffusion_model(c(0.3, 0.1), Z[[1]], Betas, X[[1]][[1]], leaders[[1]], 1, t_period[1], EmpRate[[1]]))
 
 # Define a function to compute the deviation of the empirical moments from the simulated ones (divergence_model) ---------------------------
 # Model 1 = q
@@ -379,10 +398,12 @@ divergence_model <- function(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_p
   TimeSim <- matrix(0, G, S)
 
   for (g in seq(G)){
-    print(g)
     # Compute moments - G x m object
+    start_time <- Sys.time()
     EmpiricalMoments[g,] <- moments(X[[g]][[1]], leaders[[g]], netstats[[g]], TakeUp[[g]], Sec[[g]], g, case)
-
+    end_time <- Sys.time()
+    print(end_time - start_time)
+    
     # Compute simulated moments
     SimulatedMoments <- matrix(0, S, m)
     for (s in seq(S)){
@@ -400,7 +421,7 @@ divergence_model <- function(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_p
 }
 
 # test
-divergence_model(X, Z, Betas, leaders, TakeUp, Sec, c(0.3, 0.1), 5, 10, t_period, EmpRate, 1)
+system.time(divergence_model(X, Z, Betas, leaders, TakeUp, Sec, c(0.3, 0.1), 5, 75, t_period, EmpRate, 1))
 
 # Running the model
 
@@ -416,6 +437,7 @@ if (modelType == 1){ # Case where qN = qP
   D <- array(rep(0, num_vills * m * length(qN) * length(qP)), dim = c(num_vills, m, length(qN), length(qP)))
   for (i in seq(length(qN))){
     for (j in seq(length(qP))){
+      # print(i)
       theta <- c(qN[i], qP[j])
       D[,,i,j] <- divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case)
     }
@@ -432,7 +454,6 @@ save(D, file = file.path('Rdata', file_name))
 file_name <- paste0('data_model_', as.character(modelType), '_mom_', as.character(case), '_', timeVector, '.RData')
 load(file = file.path('Rdata', file_name))
 
-bootstrap <- 0
 if (bootstrap == 0){
   B <- 1
 } else if (bootstrap == 1){
@@ -441,7 +462,6 @@ if (bootstrap == 0){
 Q <- zeros(B, 1)
 
 # Two step optimal weights
-twoStepOptimal <- 0
 if (twoStepOptimal == 1){
   if (modelType == 1){
     qN_info <- 0.1
@@ -451,8 +471,12 @@ if (twoStepOptimal == 1){
     A <- (t(D) %*% D) / num_vills
     W <- inv(A)
   } else if (modelType == 3){
-    qN_info <- 0.09
-    qP_info <- 0.45
+    # Load the first-step estimates
+    file_name <- paste0('param_est_', as.character(modelType), '_mom_', as.character(case), '_', timeVector, '_', as.character(0), '.RData')
+    load(param_est)
+    
+    qN_info <- param_est[1,1]
+    qP_info <- param_est[1,2]
     theta <- c(qN_info, qP_info)
     D <- divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case);
     A <- (t(D) %*% D) / num_vills
@@ -509,9 +533,25 @@ for (b in seq(B)){
   }
 }
 
-param_est
+file_name <- paste0('param_est_', as.character(modelType), '_mom_', as.character(case), '_', timeVector, '_', as.character(twoStepOptimal), '.RData')
+save(param_est, file = file.path('Rdata', file_name))
 
+# plot_ly(x = qP, y = qN, z = Qa[,,1], type = "heatmap")
+# plot_ly(x = qP, y = qN, z = Qa[,,1], type = "surface")
+# plot_ly(x = qP, y = qN, z = log(Qa[,,1]), type = "contour")
 
+if (modelType == 3 & bootstrap == 0){
+  plot_df <- expand_grid(qP, qN) %>%
+    mutate(Qa = c(Qa[,,1]))
+  
+  filename <- paste0("Figures/", 'data_model_', as.character(modelType), '_mom_', as.character(case), '_', timeVector, '_', as.character(twoStepOptimal), '.pdf')
+  pdf(file = filename)
+  ggplot(plot_df, aes(x = qP, y = qN, z = log(Qa))) + 
+    geom_contour_filled() +
+    geom_point(aes(x = param_est[1,2], y = param_est[1,1]), color = 'red', shape = 3) +
+    scale_fill_viridis_d(name = 'log(criterion function)') 
+  dev.off()
+}
 
 
 ## breadthdistRAL -------------------------
