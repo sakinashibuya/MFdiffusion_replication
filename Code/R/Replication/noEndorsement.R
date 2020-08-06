@@ -18,9 +18,12 @@ if (any(not_installed)) install.packages(packages[not_installed])
 lapply(packages,require,character.only = TRUE)
 
 # Global setting
-user <- "Hiro"
+user <- "Sakina"
 if (user == "Hiro"){
   project_path <- "/Users/mizuhirosuzuki/Dropbox/MFdiffusion_replication/"
+}
+if (user == "Sakina"){
+  project_path <- "/home/sakina/Github/MFdiffusion_replication"
 }
 
 # random seed
