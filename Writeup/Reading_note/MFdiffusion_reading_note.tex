@@ -176,15 +176,6 @@ Notes:
     \end{itemize}
 \end{itemize}
 
-\section{\texttt{Main\_models\_2\_4.m}}\label{main_models_2_4}
-
-The same structure as \texttt{Main\_models\_1\_3.m}, but with $\lambda$ (endorsement effect). 
-
-\begin{itemize}
-	\item 66: The grid for $\lambda$ is determined. 
-	\item 68-73: The grid for $q_P, q_N$ are set here. What's the logic behind changing these grid based on whether to have $\lambda$?
-\end{itemize}
-
 \section{\texttt{divergence\_model.m}}\label{divergence_model}
 
 ``This computes the deviation of the empirical moments from the simulated ones''
@@ -440,7 +431,158 @@ The source of this function is the Brain Connectivity Toolbox (brain-connectivit
     \end{itemize}
 \end{itemize}
 
+\section{\texttt{Main\_models\_2\_4.m}}\label{main_models_2_4}
 
+The code to estimate parameters with endorsement effects.
+The same structure as \texttt{Main\_models\_1\_3.m}, but with $\lambda$ (endorsement effect). 
+Only important differences are noted below:
+
+\begin{itemize}
+	\item 66: The grid for $\lambda$ is determined. 
+	\item 68-73: The grid for $q_P, q_N$ are set here. What's the logic behind changing these grid based on whether to have $\lambda$?
+  \item 76: \texttt{relative} What is this?
+  \item Part 5: Load data
+    \begin{itemize}
+      \item Different data are loaded for \texttt{Omega\_E}, \texttt{Omega\_D}, and \texttt{Omega\_N}, depending on the value of \texttt{relative}
+      \item These are used to calculate $F_{it}$ in equation (1) in the paper
+      \item When \texttt{relative} is 0:
+        \begin{itemize}
+          \item 93: \texttt{Omega\_E}: eigenvector centrality-weighted adjacency matrix: adjacency matrix with $j$'th column multiplied by HH $j$'s eigenvector centrality
+          \item 94: \texttt{Omega\_D}: degree-weighted adjacency matrix: adjacency matrix with $j$'th column multiplied by HH $j$'s degree
+          \item 95: \texttt{Omega\_N}: same as adjacency matrix (if HH i and HH j are connected or not)
+        \end{itemize}
+      \item When \textt{relative} is 1, same matrices are made but their elements are normalized so that row-wise sums are 1
+      \item From the paper, it appears that the specification with \texttt{relative} = 0 and \texttt{Omega\_N} is used in the main analysis.
+    \end{itemize}
+  \item Part 5: Running the model
+    \begin{itemize}
+      \item 173-175: \texttt{DE}, \texttt{DD}, \texttt{DN}: difference between data moments and simulated moments
+      \item 186: Call the function \hyperref[divergence_endorsement_model]{\texttt{divergence\_endorsement\_model}} to update \texttt{DE}, \texttt{DD}, and \texttt{DN}
+    \end{itemize}
+\end{itemize}
+
+\section{\texttt{divergence\_endorsement\_model.m}}\label{divergence_endorsement_model}
+
+``This computes the deviation of the empirical moments from the simulated ones''
+
+\subsection*{Arguments}
+\begin{itemize}
+  \item X: adjacency matrix
+  \item Z: covariate
+  \item Betas: estimates of $\beta$'s 
+  \item leaders: vector indicating leaders
+  \item TakeUp: vector indicating who took up microfinance
+  \item OmegaE: adjacency matrix weighted by eigenvector centrality
+  \item OmegaD: adjacency matrix weighted by degree centrality
+  \item OmegaN: adjacency matrix
+  \item Sec: matrix indicating second neighbors (= households with distance two)
+  \item theta: parameter values ($q_N$, $q_P$)
+  \item m: number of moments
+  \item S: number of simulations
+  \item T: number of trimesters (or months/quarters)
+  \item EmpRate: proportion of non-leaders who took up MF
+  \item version: specification of which moments to use
+\end{itemize}
+
+\subsection*{Main part}
+\begin{itemize}
+  \item 12: Calculate the number of villages ($G$)
+  \item 27-51: Calculate empirical and simulated moments, for each of weighted or unweighted adjacency matrices
+    \begin{itemize}
+      \item 28: Calculate empirical moments, using a function \hyperref[moments]{\texttt{moments}}
+      \item 30-42: Calculate simulated moments
+        \begin{itemize}
+          \item 35: Simulate the take-up of microfinance, using a function \hyperref[endorsement_model]{\texttt{endorsement\_model}}
+          \item 36-38: Calculate simulated moments based on the simulated take-ups, using a function \hyperref[moments]{\texttt{moments}}
+        \end{itemize}
+      \item 45-47: Calculate the mean of simulated moments
+      \item 49-51: Take the difference of empirical and simulated moments
+    \end{itemize}
+\end{itemize}
+
+\subsection*{Outputs}
+\begin{itemize}
+  \item DE, DD, DN: Calculated deviations (differences of empirical and simulated moments)
+  \item TSimsE, TSimsD, TSimsN: Just \texttt{zeros(G,S)}? Not used later?
+\end{itemize}
+
+\section{\texttt{endorsement\_model.m}}\label{endorsement_model}
+
+\subsection*{Arguments}
+\begin{itemize}
+  \item parms: parameters ($q_N$, $q_P$)
+  \item Z: covariate
+  \item Betas: estimates of $\beta$'s 
+  \item X: adjacency matrix
+  \item leaders: vector indicating leaders
+  \item OmegaE: adjacency matrix weighted by eigenvector centrality
+  \item OmegaD: adjacency matrix weighted by degree centrality
+  \item OmegaN: adjacency matrix
+  \item j: village index
+  \item T: number of months
+  \item EmpRate: proportion of non-leaders who took up MF
+\end{itemize}
+
+\subsection*{Main part}
+
+\begin{itemize}
+  \item 15-37: Prepare arrays to be updated in the simulation below, for each of weighted and unweighted adjacency matrices
+    \begin{itemize}
+      \item 16: \texttt{infectedE}: people who are already infected and newly infected (initial value = false for everyone)
+      \item 17: \texttt{infectedbeforeE}: people who are already infected (initial value = false for everyone)
+      \item 18: \texttt{contagiousbeforeE}: people who are already informed (initial value = false for everyone)
+      \item 19: \texttt{contagiousE}: people who are newly informed and already informed (?) (initial value = true only for leaders)
+      \item 20: \texttt{transmissionHistE}: history of who transmitted to whom
+      \item 21: \texttt{dynamicInfectionE}: vector that tracks the infection rate for the number of periods it takes place
+      \item Same for degree-centrality version (24-29) and naive version (32-37)
+    \end{itemize}
+  \item 42-78: Loop to simulate the diffusion for $T$ periods for eigenvector centrality-weighted adjacency matrix
+    \begin{itemize}
+      \item 45-56: Step 1: Take-up decision based on newly informed
+        \begin{itemize}
+          \item 45: \texttt{zE} is a matrix in which all columns are indicators of who are already infected
+          \item 46: \texttt{regressorE} is $F_{it}$ in equation (1) in the paper: \\
+            \texttt{transmissionHistE$.\ast$zE}: matrix indicating who are transmitted (= informed) and infected (= take-up) 
+            (isn't it the same as \texttt{zE} since those are are infected should be transmitted first?) \\
+            $\Rightarrow$ \texttt{diag(OmegaE$\ast$(transmissionHistE$.\ast$zE))}: (weighted) number of infected neighbors \\
+            \texttt{diag(OmegaE$\ast$(transmissionHistE))}: (weighted) number of transmitted neighbors
+          \item 47-48: replace to $0$ is the denominator in line 46 is $0$
+          \item 49: Probability of take-up (calculated for everyone, both non-infected and already-infected)
+
+          \item 51: Updated infected households: \\
+            The condition \texttt{($\sim$contagiousbeforeE \& contagiousE \& x(:,t) $<$ LOGITprobE)} is satisfied if:
+            \begin{itemize}
+              \item not contagious before, and 
+              \item newly informed, and
+              \item the random number generated is smaller than the LOGITprobE calculated in line 49.
+            \end{itemize}
+          \item 54: Update \texttt{infectedbeforeE}
+          \item 55: Update \texttt{contagiousbeforeE}
+          \item 56: \texttt{CE}: number of informed households
+        \end{itemize}
+      \item 58-60: Step 2: Information flows
+        \begin{itemize}
+          \item 59: \texttt{transmitPROBE}: Vector of probability of transmission (individual specific, depending on informed and on take-up)
+            \begin{itemize}
+              \item If informed \& take-up, probability = $q_P$
+              \item If informed \& not take-up, probability = $q_N$
+            \end{itemize}
+          \item 60: \texttt{contagionlikelihood}: The probability to information flowing from informed households to neighbors (no matter whether those neighbors are already informed or not)
+        \end{itemize}
+      \item 63-77: Step 3: Simulate newly informed households
+        \begin{itemize}
+          \item 64: \texttt{t1E}: Full transmission matrix: transmitted from whom to whom
+            \begin{itemize}
+              \item 68-70: Since some households are not transmitted, this matrix should be modified so that those non-transmitted households do not transmit to other households
+            \end{itemize}
+          \item 72: Update \texttt{transmissionHistE}
+          \item 74: Matrix indicating which contagious households transmit to previously non-contagious households
+          \item 75: Update \texttt{contagiousE}: non-contagious households turn to 1 if any contagious households transmit to them
+        \end{itemize}
+    \end{itemize}
+  \item 83-120: Loop to simulate the diffusion for $T$ periods for degree-weighted adjacency matrix
+  \item 125-161: Loop to simulate the diffusion for $T$ periods for unweighted adjacency matrix
+\end{itemize}
 
 
 \clearpage
