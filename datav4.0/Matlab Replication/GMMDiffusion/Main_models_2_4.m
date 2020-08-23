@@ -14,12 +14,10 @@
 % 8. RUNNING THE AGGREGATOR
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+clear all
 tic;
 % Adjusting so this runs off dropbox
-cd ..
-clear all
-
+cd /home/sakina/Github/MFdiffusion_replication
 location = pwd;
 addpath(genpath(location));
 
@@ -107,33 +105,33 @@ for vilnum = vills
     N = length(X{counter});
     
     if relative==0
-        Omega_E{counter} = dlmread(['./India Networks/Omega_abs' num2str(vilnum) '.csv']);
-        Omega_D{counter} = dlmread(['./India Networks/DOmega_abs' num2str(vilnum) '.csv']);
-        Omega_N{counter} = dlmread(['./India Networks/NOmega_abs' num2str(vilnum) '.csv']);
+        Omega_E{counter} = dlmread(['India Networks/Omega_abs' num2str(vilnum) '.csv']);
+        Omega_D{counter} = dlmread(['India Networks/DOmega_abs' num2str(vilnum) '.csv']);
+        Omega_N{counter} = dlmread(['India Networks/NOmega_abs' num2str(vilnum) '.csv']);
     elseif relative==1,
-        Omega_E{counter} = dlmread(['./India Networks/Omega_rel' num2str(vilnum) '.csv']);
-        Omega_D{counter} = dlmread(['./India Networks/DOmega_rel' num2str(vilnum) '.csv']);
-        Omega_N{counter} = dlmread(['./India Networks/NOmega_rel' num2str(vilnum) '.csv']);
+        Omega_E{counter} = dlmread(['India Networks/Omega_rel' num2str(vilnum) '.csv']);
+        Omega_D{counter} = dlmread(['India Networks/DOmega_rel' num2str(vilnum) '.csv']);
+        Omega_N{counter} = dlmread(['India Networks/NOmega_rel' num2str(vilnum) '.csv']);
     end
     
     
     % Load the Leader data
-    templeaders = load(['./India Networks/HHhasALeader' num2str(vilnum) '.csv']);
+    templeaders = load(['India Networks/HHhasALeader' num2str(vilnum) '.csv']);
     leaders{counter} = templeaders(:,2);
     
     % Load the Take-Up data
-    TakeUp{counter} = load(['./India Networks/MF' num2str(vilnum) '.csv']);
+    TakeUp{counter} = load(['India Networks/MF' num2str(vilnum) '.csv']);
     EmpRate(counter) = mean(TakeUp{counter}(~leaders{counter}));
     
     % Load the giant component data
-    inGiant{counter} = load(['./India Networks/inGiant' num2str(vilnum) '.csv']);
+    inGiant{counter} = load(['India Networks/inGiant' num2str(vilnum) '.csv']);
     
     % Generate hermits
     d = sum(X{counter},2);
     hermits{counter}=(d==0);
     
     % Load the Covariates data
-    W{counter} = load(['./India Networks/hhcovariates' num2str(vilnum) '.csv']);
+    W{counter} = load(['India Networks/hhcovariates' num2str(vilnum) '.csv']);
     
     % Which covariates to use - for instance we want to add a PCA
     Z{counter} = [W{counter}(:,1:6)]; % for instance, take the first covariate only
@@ -189,7 +187,7 @@ if modelType==2, % case where qN = qP
             ['Done with ' num2str(iterations/totalCount*100) '% of the D(G,m) computations.']
             oneGridPtTimeelasped = toc(oneGridPtTime);
             
-        end
+        endm
     end
     
 elseif modelType==4, % case where qN and qP are independent

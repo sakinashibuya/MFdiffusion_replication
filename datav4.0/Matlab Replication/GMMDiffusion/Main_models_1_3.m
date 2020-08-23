@@ -17,13 +17,13 @@
 clear all
 tic;
 % Adjusting so this runs off dropbox
-cd ..
+cd /home/sakina/Github/MFdiffusion_replication
 location = pwd;
 addpath(genpath(location));
 
 %% Parameters
 % 0. Model type
-modelType = 3; % modelType 1 if q, modelType 3 if qN and qP, qN != qP
+modelType = 1; % modelType 1 if q, modelType 3 if qN and qP, qN != qP
 
 % 1. Select villages to consider
 vills = [1:4,6,9, 12, 15, 19:21, 23:25, 29, 31:33, 36, 39, 42, 43, 45:48, 50:52, 55, 57, 59:60, 62, 64:65, 67:68, 70:73, 75];
@@ -98,23 +98,23 @@ for vilnum = vills
     N = length(X{counter});
     
     % Load the Leader data
-    templeaders = load(['./India Networks/HHhasALeader' num2str(vilnum) '.csv']);
+    templeaders = load(['India Networks/HHhasALeader' num2str(vilnum) '.csv']);
     leaders{counter} = templeaders(:,2);
     
     
     % Load the Take-Up data
-    TakeUp{counter} = load(['./India Networks/MF' num2str(vilnum) '.csv']);
+    TakeUp{counter} = load(['India Networks/MF' num2str(vilnum) '.csv']);
     EmpRate(counter) = mean(TakeUp{counter}(~leaders{counter}));
     
     % Load the giant component data
-    inGiant{counter} = load(['./India Networks/inGiant' num2str(vilnum) '.csv']);
+    inGiant{counter} = load(['India Networks/inGiant' num2str(vilnum) '.csv']);
     
     % Generate hermits
     d = sum(X{counter},2);
     hermits{counter}=(d==0);
     
     % Load the Covariates data
-    W{counter} = load(['./India Networks/hhcovariates' num2str(vilnum) '.csv']);
+    W{counter} = load(['India Networks/hhcovariates' num2str(vilnum) '.csv']);
     
     % Which covariates to use - for instance we want to add a PCA
     Z{counter} = [W{counter}(:,1:6)]; % for instance, take the first covariate only
