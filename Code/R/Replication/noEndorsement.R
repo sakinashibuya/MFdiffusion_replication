@@ -418,23 +418,26 @@ divergence_model <- function(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_p
     MeanSimulatedMoments[g,] <- colMeans(SimulatedMoments)
     D[g,] <- MeanSimulatedMoments[g,] - EmpiricalMoments[g,]
   }
-  
-  return(D)
-
+  #return(D)
+  div_list <- list(D, EmpiricalMoments, MeanSimulatedMoments)
+  return(div_list)
 }
 
 # test
-system.time(divergence_model(X, Z, Betas, leaders, TakeUp, Sec, c(0.3, 0.1), 5, 75, t_period, EmpRate, 1))
+#system.time(divergence_model(X, Z, Betas, leaders, TakeUp, Sec, c(0.3, 0.1), 5, 75, t_period, EmpRate, 1))
 
 # Running the model
 
 if (modelType == 1){ # Case where qN = qP
-  D <- array(rep(0, num_vills * m * length(qN)), dim = c(num_vills, m, length(qN)))
+  
+  #D <- array(rep(0, num_vills * m * length(qN)), dim = c(num_vills, m, length(qN)))
+  div_output <- list()
   
   for (i in seq(length(qN))){
-    print(i)
+    #print(i)
     theta <- c(qN[i], qN[i])
-    D[,,i] <- divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case)
+    #D[,,i] <- divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case)
+    div_output[[i]] <- divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case)
   }
 } else if (modelType == 3){ # Case where qN \ne qP
   D <- array(rep(0, num_vills * m * length(qN) * length(qP)), dim = c(num_vills, m, length(qN), length(qP)))
@@ -447,10 +450,13 @@ if (modelType == 1){ # Case where qN = qP
   }
 }
 
-
 # Save the output ------------------
-file_name <- paste0('data_model_', as.character(modelType), '_mom_', as.character(case), '_', timeVector, '.RData')
-save(D, file = file.path('Rdata', file_name))
+# file_name <- paste0('data_model_', as.character(modelType), '_mom_', as.character(case), '_', timeVector, '.RData')
+# save(D, file = file.path(project_path, 'Rdata', file_name))
+
+# Save the div_output
+file_name <- paste0('data_model_', as.character(modelType), '_div_output_', as.character(case), '_', timeVector, '.RData')
+save(div_output, file = file.path(project_path, 'Rdata', file_name))
 
 # Running the aggregator ------------------
 
