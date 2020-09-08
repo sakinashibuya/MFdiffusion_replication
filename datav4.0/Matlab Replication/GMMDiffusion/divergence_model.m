@@ -8,14 +8,14 @@
 % It relies on diffusion_model as the transmission process and moments
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [D TimeSim] = divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, T,EmpRate, version)
+function [D EmpiricalMoments MeanSimulatedMoments TimeSim] = divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, T,EmpRate, version)
 
 %% Parameters
 G = length(X);
 
 
 %% Computation of the vector of divergences across all the moments
-EmpiricalMoments = zeros(G,m);
+EmpiricalMoments = zeros(G,m); 
 MeanSimulatedMoments = zeros(G,m);
 D = zeros(G,m);
 TimeSim = zeros(G,S);

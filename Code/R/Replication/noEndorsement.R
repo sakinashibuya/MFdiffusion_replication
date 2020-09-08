@@ -38,7 +38,7 @@ S <- 75
 # Time span for one period
 timeVector <- 'trimesters'
 # Model type (1 -> qN = qP, 3 -> qN \ne qP)
-modelType <- 1
+modelType <- 3
 # Whether bootstrap step or not (0 = No, 1 = Yes)
 bootstrap <- 0
 
@@ -430,7 +430,7 @@ divergence_model <- function(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_p
 
 if (modelType == 1){ # Case where qN = qP
   
-  #D <- array(rep(0, num_vills * m * length(qN)), dim = c(num_vills, m, length(qN)))
+  # D <- array(rep(0, num_vills * m * length(qN)), dim = c(num_vills, m, length(qN)))
   div_output <- list()
   
   for (i in seq(length(qN))){
@@ -440,12 +440,17 @@ if (modelType == 1){ # Case where qN = qP
     div_output[[i]] <- divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case)
   }
 } else if (modelType == 3){ # Case where qN \ne qP
-  D <- array(rep(0, num_vills * m * length(qN) * length(qP)), dim = c(num_vills, m, length(qN), length(qP)))
+  
+  # D <- array(rep(0, num_vills * m * length(qN) * length(qP)), dim = c(num_vills, m, length(qN), length(qP)))
+  # div_output <- array(list(), dim = c(length(qN), length(qP))) # Large array of each estimation type with each element being a 31X39 matrix
+  div_output <- list()
+  
   for (i in seq(length(qN))){
     for (j in seq(length(qP))){
       # print(i)
       theta <- c(qN[i], qP[j])
-      D[,,i,j] <- divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case)
+     # D[,,i,j] <- divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case)
+      div_output[[i*j]] <- divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case)
     }
   }
 }

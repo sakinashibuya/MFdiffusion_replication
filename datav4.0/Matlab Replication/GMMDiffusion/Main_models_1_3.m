@@ -23,7 +23,7 @@ addpath(genpath(location));
 
 %% Parameters
 % 0. Model type
-modelType = 1; % modelType 1 if q, modelType 3 if qN and qP, qN != qP
+modelType = 3; % modelType 1 if q, modelType 3 if qN and qP, qN != qP
 
 % 1. Select villages to consider
 vills = [1:4,6,9, 12, 15, 19:21, 23:25, 29, 31:33, 36, 39, 42, 43, 45:48, 50:52, 55, 57, 59:60, 62, 64:65, 67:68, 70:73, 75];
@@ -146,6 +146,8 @@ end
 %7. RUNNING THE MODEL
 if modelType==1, % case where qN = qP
     D = cell(length(qN));
+    EmpiricalMoments = cell(length(qN));
+    MeanSimulatedMoments = cell(length(qN));
     TimeSim = cell(length(qN));
     iterations = 0;
     totalCount = length(qN);
@@ -153,7 +155,7 @@ if modelType==1, % case where qN = qP
     for i=1:length(qN)
         theta = [qN(i), qN(i)];
         oneGridPtTime = tic;
-        [D{i} TimeSim{i}] = divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, T, EmpRate, version);
+        [D{i} EmpiricalMoments{i} MeanSimulatedMoments{i} TimeSim{i}] = divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, T, EmpRate, version);
         iterations = iterations+1;
         ['Done with ' num2str(iterations/totalCount*100) '% of the D(G,m) computations.']
         oneGridPtTimeElasped=toc(oneGridPtTime);
@@ -162,6 +164,8 @@ if modelType==1, % case where qN = qP
     
 elseif modelType==3, % case where qN and qP are independent
     D = cell(length(qN),length(qP));
+    EmpiricalMoments = cell(length(qN),length(qP));
+    MeanSimulatedMoments = cell(length(qN),length(qP));
     TimeSim = cell(length(qN),length(qP));
     iterations = 0;
     totalCount = length(qN)*length(qP);
@@ -169,7 +173,7 @@ elseif modelType==3, % case where qN and qP are independent
     for i=1:length(qN)
         for j=1:length(qP)
             theta = [qN(i), qP(j)];
-            [D{i,j} TimeSim{i,j}] = divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, T, EmpRate, version);
+            [D{i,j} EmpiricalMoments{i,j} MeanSimulatedMoments{i,j} TimeSim{i,j}] = divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, T, EmpRate, version);
             iterations = iterations+1;
             ['Done with ' num2str(iterations/totalCount*100) '% of the D(G,m) computations.']
             toc;
