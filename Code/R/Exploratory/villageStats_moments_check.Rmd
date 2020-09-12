@@ -1,5 +1,5 @@
 ---
-title: "Intermediate outputs for sanity checks"
+title: "Intermediate outputs for sanity checks (Only No Endorsement Model)"
 author: "Sakina Shibuya"
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 output: html_document
@@ -60,7 +60,40 @@ This is a sanity check.
 | **Intercept** | -1.210          | -1.210 |
 
 
-## Check moments calculations
+## Check village statistics
+
+### Model 1 (qN = qP)
+```{r}
+load(file = file.path(project_path, 'Rdata/data_model_1_netstats_1_trimesters.RData'))
+
+# Make a proper 
+ls.df.M1 <- list()
+ls.agg.df.M1 <- list()
+for (i in seq(length(netstats))) {
+  
+  # Convert to data frames so it's easier to manipulate
+  ls.df.M1[[i]] <- data.frame(matrix(unlist(netstats[[i]]), nrow=length(netstats[[i]][[1]]))) 
+  
+  # Calculate village means of all variables
+  ls.df.M1[[i]]$one <- 1
+  ls.agg.df.M1[[i]] <- aggregate(. ~ one, ls.df.M1[[i]], FUN = mean)
+  ls.agg.df.M1[[i]]$one <- NULL
+}
+
+village.df.M1 <- data.frame(matrix(unlist(ls.agg.df.M1), nrow = length(ls.agg.df.M1)))
+village.df.M1$villageID <- rownames(village.df.M1)
+village.df.M1 <- village.df.M1 %>% rename(minDistFromLeaders = X1, avgDistFromLeaders = X2, 
+                                    minDistInfectedLeaders = X3, minDistNonInfectedLeaders = X4, 
+                                    neighborOfInfected = X5, neighborOfNonInfected = X6,
+                                    network_degree = X7)
+
+# Descriptive stats table
+descr(village.df.M1[, 1:7], stats = "common", transpose = T, headings = F, style = "rmarkdown")
+```
+
+### Model 3 (qN $\ne$ qP)
+
+## Check moments
 
 Those moments are:
 
@@ -75,9 +108,7 @@ Those moments are:
 
 The D matrix stores the difference between simulated and empirical values of each of the above moments. 
 
-### No Endosement Model
-
-#### Model 1  (qN = qP) 
+### Model 1  (qN = qP) 
 &nbsp;
 The results are pretty close. I think the previous differences that we saw may be from rounding up.
 Some values seem a bit odd. For instance, the difference between the empirical and simulated V2 values doesn't seem like it should be 0.
@@ -105,7 +136,7 @@ Not too sure what to think about this.
 | **V5**          | 1.61      | 1.48            | -0.14      |
 
 
-#### Model 3  (qN != qP) 
+### Model 3  (qN $\ne$ qP) 
 
 &nbsp;
 
@@ -128,6 +159,8 @@ There are a bit more differences in the model 3 estimates. The difference betwee
 | **V3**          | 0.21      | 0.24            | 0.03       |
 | **V4**          | 0.06      | 0.06            | 0.00       |
 | **V5**          | 1.61      | 2.08            | 0.47       |
+
+
 
 
 

@@ -23,7 +23,7 @@ addpath(genpath(location));
 
 %% Parameters
 % 0. Model type
-modelType = 3; % modelType 1 if q, modelType 3 if qN and qP, qN != qP
+modelType = 1; % modelType 1 if q, modelType 3 if qN and qP, qN != qP
 
 % 1. Select villages to consider
 vills = [1:4,6,9, 12, 15, 19:21, 23:25, 29, 31:33, 36, 39, 42, 43, 45:48, 50:52, 55, 57, 59:60, 62, 64:65, 67:68, 70:73, 75];

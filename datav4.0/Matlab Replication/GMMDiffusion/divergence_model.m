@@ -22,13 +22,15 @@ TimeSim = zeros(G,S);
 
 for g=1:G
     % Compute moments - G x m object
-    EmpiricalMoments(g,:) = moments(X{g},leaders{g},TakeUp{g},Sec{g},g,version);
+    %EmpiricalMoments(g,:) = moments(X{g},leaders{g},TakeUp{g},Sec{g},g,version);
+    [EmpiricalMoments(g,:) netstats(g)] = moments(X{g},leaders{g},TakeUp{g},Sec{g},g,version);
     
     % Compute simulated moments
     SimulatedMoments = zeros(S,m);
     for s=1:S
         infectedSIM = diffusion_model(theta, Z{g}, Betas, X{g},leaders{g}, g, T(g), EmpRate(g));
-        SimulatedMoments(s,:) = moments(X{g},leaders{g},infectedSIM,Sec{g},g,version);
+        %SimulatedMoments(s,:)  = moments(X{g},leaders{g},infectedSIM,Sec{g},g,version);
+        [SimulatedMoments(s,:) netstats(g)] = moments(X{g},leaders{g},infectedSIM,Sec{g},g,version);
     end    
     
     % Compute the mean simulated moment - a G x m object

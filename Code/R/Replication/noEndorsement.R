@@ -460,6 +460,10 @@ if (modelType == 1){ # Case where qN = qP
 # save(D, file = file.path(project_path, 'Rdata', file_name))
 
 # Save the div_output
+file_name <- paste0('data_model_', as.character(modelType), '_netstats_', as.character(case), '_', timeVector, '.RData')
+save(netstats, file = file.path(project_path, 'Rdata', file_name))
+
+# Save the div_output
 file_name <- paste0('data_model_', as.character(modelType), '_div_output_', as.character(case), '_', timeVector, '.RData')
 save(div_output, file = file.path(project_path, 'Rdata', file_name))
 

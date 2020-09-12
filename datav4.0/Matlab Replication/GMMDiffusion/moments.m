@@ -1,6 +1,7 @@
-function stats = moments(X,leaders,infected, Sec,j, version)
+function [stats netstats] = moments(X,leaders,infected, Sec,j, version)
 
-persistent netstats
+%persistent netstats
+netstats = struct('minDistFromLeaders', {}, 'avgDistFromLeaders', {}, 'minDistInfectedLeaders', {}, 'minDistNonInfectedLeaders', {}, 'neighborOfInfected', {}, 'neighborOfNonInfected', {}, 'degree', {}, 'num_edges', {}, 'leaderneighborhood', {}, 'num_leaders', {}, 'num_leader_edges', {})
 
 N = size(X,1);
 

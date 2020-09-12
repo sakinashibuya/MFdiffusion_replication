@@ -2,7 +2,7 @@
 % Check D matrix values
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-cd /home/sakina/Github/MFdiffusion_replication
+cd /home/sakina/Github/MFdiffusion_replication/MatlabData
 
 %% qN = qP (model 1)
 load('data_model_1_mom_1 trimesters .mat')
