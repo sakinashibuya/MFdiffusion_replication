@@ -13,14 +13,12 @@ packages <- c(
   "Matrix"
 )
 
-not_installed <- !packages %in% installed.packages()
-if (any(not_installed)) install.packages(packages[not_installed])
-lapply(packages,require,character.only = TRUE)
+pacman::p_load(packages, character.only = T)
 
 # Global setting
 user <- "Hiro"
 if (user == "Hiro"){
-  project_path <- "/Users/mizuhirosuzuki/Dropbox/MFdiffusion_replication/"
+  project_path <- "../.."
 }
 
 # random seed
@@ -47,7 +45,7 @@ vills <- c(1:4, 6, 9, 12, 15, 19:21, 23:25, 29, 31:33, 36,
            64:65, 67:68, 70:73, 75)
 num_vills <- length(vills)
 
-# Select moments
+# Number of moment conditions
 
 if (case == 1){
   m <- 5
@@ -156,6 +154,8 @@ for (i in seq_along(vills)){
   
   X_graph <- graph_from_adjacency_matrix(X[[i]][[1]], mode = "undirected")
   D <- distances(X_graph)
+  diag(D) <- 2
+  D[,!leaders[[i]]] = 0
   
   minDistFromLeaders <- apply(D[, which(leaders[[i]])], 1, min)
   avgDistFromLeaders <- apply(D[, which(leaders[[i]])], 1, mean)
@@ -500,6 +500,12 @@ for (b in seq(B)){
     wt[b,] <- rep(1 / num_vills, num_vills)
   }
 
+  if (modelType == 1){
+    param_est <- zeros(B, 1)
+  } else if (modelType == 3){
+    param_est <- zeros(B, 2)
+  }
+      
   # For each model, generate the criterion function value for this
   # bootstrap run
 
@@ -507,7 +513,6 @@ for (b in seq(B)){
   if (modelType == 1){
     momFunc <- array(rep(0, length(qN) * B * m), dim = c(length(qN), B, m))
     Qa <- array(rep(0, length(qN) * B), dim = c(length(qN), B))
-    param_est <- zeros(B, 1)
     for (i in seq(length(qN))){
       # Compute the moment function
       momFunc[i,b,] <- wt[b,] %*% D[,,i] / num_vills
@@ -518,7 +523,6 @@ for (b in seq(B)){
   } else if (modelType == 3){
     momFunc <- array(rep(0, length(qN) * length(qP) * B * m), dim = c(length(qN), length(qP), B, m))
     Qa <- array(rep(0, length(qN) * length(qP) * B), dim = c(length(qN), length(qP), B))
-    param_est <- zeros(B, 2)
     for (i in seq(length(qN))){
       for (j in seq(length(qP))){
         # Compute the moment function
@@ -552,79 +556,5 @@ if (modelType == 3 & bootstrap == 0){
     scale_fill_viridis_d(name = 'log(criterion function)') 
   dev.off()
 }
-
-
-## breadthdistRAL -------------------------
-#
-#CIJ <- X[[1]][[1]]
-#dummies <- leaders[[1]]
-#
-#breadthdistRAL <- function(CIJ, dummies){
-#  N <- nrow(CIJ)
-#
-#  D <- matrix(rep(0, N * N), N, N)
-#  for (i in seq_along(dummies)){
-#    if (dummies[i] != 0){
-#      D[, i] <- breadth(CIJ, i)
-#    }
-#  }
-#
-#  # replace zeros with 'Inf's
-#  D[is.infinite(D)] <- 999999
-#
-#  # construct R
-#  R <- as.double(D[D != 999999]) # ???
-#
-#  return(list(R, D))
-#}
-#
-## breadth -------------------------
-#
-#source <- 2
-#
-#breadth <- function(CIJ, source){
-#  N <- nrow(CIJ)
-#
-#  # colors: white, gray, black
-#  white <- 0
-#  gray <- 1
-#  black <- 2
-#
-#  # initialize colors
-#  color <- t(rep(0, N))
-#  # initialize distances
-#  distance <- Inf * t(rep(1, N))
-#  # initialize branches
-#  branch <- t(rep(0, N))
-#
-#  # start on vertex 'source'
-#  color[source] <- gray
-#  distance[source] <- 0
-#  branch[source] <- -1
-#  Q <- source
-#
-#  # keep going until the entire graph is explored
-#  while (length(Q) > 0){
-#    u <- Q[1]
-#    ns <- (CIJ[u,] > 0)
-#    for (v in seq(ns)){
-#      if (distance[v] == 0){
-#        distance[v] <- distance[u] + 1
-#      }
-#      if (color[v] == white){
-#        color[v] <- gray
-#        distance[v] <- distance[u] + 1
-#        branch[v] <- u
-#        Q <- c(Q, v)
-#      }
-#    }
-#    Q <- Q[2:length(Q)] # ??
-#    color[u] <- black
-#  }
-#  
-#  return(list(distance, branch))
-#
-#}
-
 
 

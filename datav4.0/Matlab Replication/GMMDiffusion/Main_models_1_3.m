@@ -137,7 +137,6 @@ for vilnum = vills
     Sec{counter}=(Sec{counter}-X{counter}>0);
 end
 
-
 %6. Logistic fit to get coefficients for covariates and the constant
 [Betas, dev, stats] = glmfit(Covars,Outcome,'binomial','link','logit');
 [Betas'; stats.se'; stats.p']
