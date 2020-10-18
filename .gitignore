@@ -78,6 +78,8 @@
 !/**/Output/**/*.eps
 !/**/Output/**/*.svg
 
+!/Code/R/Replication/noEndorsement.pdf
+
 #######################
 # Include all the files with passwords or tokens here. All files named
 # password or passwords are with this template ignored no matter which
