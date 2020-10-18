@@ -1,12 +1,13 @@
 ---
 title: 'Replication of "The Diffusion of Microfinance"'
 author: 'Kazuki Motohashi, Sakina Shibuya, and Mizuhiro Suzuki'
-date: 'August 28th, 2020'
+date: "`r Sys.Date()`"
 output: pdf_document
 ---
 
-In this document, we aim to understand the codes used in [Banerjee et al. (2013), "The Diffusion of Microfinance"](https://science.sciencemag.org/content/341/6144/1236498).
+In this document, we aim to understand the codes used in [Banerjee et al. (2013), "The Diffusion of Microfinance"](https://science.sciencemag.org/content/341/6144/1236498) and try to replicate their estimation results.
 The data and original codes can be downloaded [here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=hdl:1902.1/21538).
+The details of their model are not discussed in this document: refer to the Supplementary material of the paper for details, which can be downloaded with the data and the codes.
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -22,7 +23,8 @@ packages <- c(
   "ggplot2",
   "dqrng",
   "Matrix",
-  "pander"
+  "pander",
+  "kableExtra"
 )
 
 pacman::p_load(packages, character.only = T)
@@ -30,10 +32,10 @@ pacman::p_load(packages, character.only = T)
 
 ## Overview of structural estimation steps
 
-1. For a given parameter $\theta$ and each village $r$, compute $d(r, \theta) = \frac{1}{S} \sum_s m_{sim, r}(s, \theta) - m_{emp, r}$, where $m_{sim, r}(s, \theta)$ is the $s$'th simulated moment, $m_{emp, r}$ is the empirical moment, and $S$ is the number of simulations
-2. Compute $D(\theta) = \frac{1}{R} \sum_r d(r, \theta)$
-3. Calculate $Q(\theta) = D(\theta)' \widehat{W} D(\theta)$, where $\widehat{W}$ is the weight matrix
-4. After calculating $Q(\theta)$ for all $\theta$s in the grid of parameter values, find $\theta^* = \arg \min Q(\theta)$
+1. For a given parameter $\theta$ and each village $r$, compute $d(r, \theta) = \frac{1}{S} \sum_s m_{sim, r}(s, \theta) - m_{emp, r}$, where $m_{sim, r}(s, \theta)$ is the $s$'th simulated moments, $m_{emp, r}$ is the empirical moments, and $S$ is the number of simulations. Note that $d(r, \theta)$ is a vector, whose length depends on how many moments are used for estimation (in their main specification, 5 moments are used).
+2. Compute $D(\theta) = \frac{1}{R} \sum_r d(r, \theta)$.
+3. Calculate $Q(\theta) = D(\theta)' \widehat{W} D(\theta)$, where $\widehat{W}$ is the weight matrix.
+4. After calculating $Q(\theta)$ for all $\theta$s in the grid of parameter values, find $\theta^* = \arg \min Q(\theta)$.
 
 There are a couple of things worth noting here:
 
@@ -44,7 +46,7 @@ There are a couple of things worth noting here:
 ## Codes used in the paper
 
 In this document, we focus on the codes used for the analysis without the endorsement effect.
-The R script for the replication of the results with endorsement effect is found here (not prepared yet).
+The R script for the replication of the results with endorsement effect will be updated on this GitHub repo (** add link after making this public **).
 The original analyses are conducted using the following Matlab codes:
 
 - `Main_models_1_3.m`: The main code for estimation. This code calls other functions defined in the scripts below;
@@ -53,7 +55,7 @@ The original analyses are conducted using the following Matlab codes:
 - `moments.m`: Function to calculate moments.
 
 In the original codes, two other files, `breadthdistRAL.m` and `breadth.m`, are used to calculate statistics on the networks such as distances between households.
-Since we use an R package called `igraph` to derive the statistics, we do not use the functions defined in these Matlab files.
+Since we use an R package called `igraph` to derive such network statistics, we will not use the functions defined in these Matlab files.
 
 ## Global setting
 
@@ -63,7 +65,7 @@ First, we define global settings to run the code below.
 # Global setting -------------------
 user <- "Hiro"
 if (user == "Hiro"){
-  project_path <- "../.."
+  project_path <- "/Users/mizuhirosuzuki/Documents/GitHub/MFdiffusion_replication"
 }
 
 # random seed
@@ -180,7 +182,7 @@ plot(
 
 Keeping this in mind, we load the data used in the estimation.
 
-```{r, include = FALSE}
+```{r, results = "hide", message = FALSE, warning = FALSE}
 # Load data ------------------------
 # Adjacency matrix
 X <- readMat(file.path(
@@ -261,6 +263,8 @@ for (i in seq_along(vills)){
 Before structural estimation, we estimate the parameters on how the log-odds ratio of participation changes as household characteristics change.
 This estimation is based on the participation decisions among the set of leaders, who we know are informed of the microfinance program.
 Since these parameters are used to calculate participation probabilities of non-leaders, one assumption imposed here is that the parameters are the same for leaders and non-leaders.
+The covariates used in this regression include quality of access to electricity, quality of latrines, number of beds, number of rooms, the number of beds per capita, and the number of rooms per capita.
+** I coundn't find an explanation of which variable indicates what. Maybe I should try harder to find it. **
 
 ```{r}
 # Logistic fit to get coefficients for covariates and the constant ----------------------
@@ -268,7 +272,7 @@ leader_df <- as_tibble(Outcome) %>%
   bind_cols(Covars)
 glm_res <- glm(value ~ ., data = leader_df, family = "binomial") 
 Betas <- glm_res$coefficients
-# pander(Betas)
+kable(summary(glm_res)$coefficients, digits = 2)
 ```
 
 ## Calculate network statistics
@@ -279,46 +283,59 @@ As mentioned above, although the authors use functions defined in `breadthdistRA
 
 ```{r}
 # Calculate network statistics (netstats) for each village ------------
+# Calculated statistics of each village are stored in the list "netstats"
 netstats <- list()
 
 for (i in seq_along(vills)){
   
+  # Create an undirected graph from an adjacency matrix
   X_graph <- graph_from_adjacency_matrix(X[[i]][[1]], mode = "undirected")
+  # Calculate distances between households
   D <- distances(X_graph)
+  # Some how the original Matlab code defines that the distance from a household to itself is 2,
+  # so we follow this way here
   diag(D) <- 2
-  D[,!leaders[[i]]] = 0
+  # Here we are interested only in the distance between a household and leaders,
+  # so let distances from non-leaders be 0
+  D[, !leaders[[i]]] = 0
   
+  # Distance from the closest leader
   minDistFromLeaders <- apply(D[, which(leaders[[i]])], 1, min)
+  # Average distance from leaders
   avgDistFromLeaders <- apply(D[, which(leaders[[i]])], 1, mean)
   
+  # Set of households who take up MF
   infected <- TakeUp[[i]]
   
+  # Distance from the closest leader who takes up
   if (dot(as.numeric(infected), as.numeric(leaders[[i]])) > 0){
     minDistInfectedLeaders <- apply(as.matrix(D[, which(leaders[[i]] & infected)]), 1, min)
   } else {
     minDistInfectedLeaders <- rep(0, nrow(leaders[[i]]))
   }
   
+  # Distance from the closest leader who does not take up
   if (dot(1 - as.numeric(infected), as.numeric(leaders[[i]])) > 0){
     minDistNonInfectedLeaders <- apply(D[, which(leaders[[i]] & !infected)], 1, min)
   } else {
     minDistNonInfectedLeaders <- rep(0, nrow(leaders[[i]]))
   }
   
-  # variable of an indicator if neighboring leader is infected:
+  # Indicator if neighboring leader is infected:
   # minimum distance to infected leaders is 1 & 
   # minimum distance to non-infected leaders is 0 or > 1
   neighborOfInfected <- (
     ((minDistInfectedLeaders == 1) - (minDistNonInfectedLeaders == 1)) > 0
     ) 
   
-  # variable of an indicator if neighboring leader is not infected:
-  # minimum distance to infected leaders is 0 or >1 & 
+  # Indicator if neighboring leader is not infected:
+  # minimum distance to infected leaders is 0 or > 1 & 
   # minimum distance to non-infected leaders is 1 
   neighborOfNonInfected <- (
     ((minDistInfectedLeaders == 1) - (minDistNonInfectedLeaders == 1)) < 0
     )
   
+  # Degree of network (number of connected households)
   network_degree <- rowSums(X[[i]][[1]])
   
   netstats_j <- list(
@@ -338,20 +355,21 @@ for (i in seq_along(vills)){
 
 ## Define a function to calculate moments (function `moments`)
 
-Here we define a function to calculate moments, given who take up microfinance.
+Here we define a function to calculate moments, given the information on who take up microfinance.
 This function is used to calculate simulated moments and empirical moments.
-When calculating empirical moments, we use the data of take-ups of each household.
-On the other hand, for each village we simulate which households take up microfinance, which is used when calculating simulated moments.
+When calculating empirical moments, we use the data of take-ups by each household.
+On the other hand, for each village we simulate take-ups of microfinance by households, which is used when calculating simulated moments.
 
 ```{r}
 # Define a function to calculate moments (moments) ------------
 moments <- function(X, leaders, netstats, infected, Sec, j, case){
+  
+  # Number of households in the village
   N <- nrow(X)
   
   network_degree <- netstats['network_degree'][[1]]
   neighborOfInfected <- netstats['neighborOfInfected'][[1]]
   neighborOfNonInfected <- netstats['neighborOfNonInfected'][[1]]
-
 
   if (case == 1){
     # 1. Fraction of nodes that have no taking neighbors but are takers themselves
@@ -552,9 +570,11 @@ diffusion_model <- function(parms, Z, Betas, X, leaders, j, t_period, EmpRate){
 system.time(diffusion_model(c(0.3, 0.1), Z[[1]], Betas, X[[1]][[1]], leaders[[1]], 1, t_period[1], EmpRate[[1]]))
 ```
 
-## Define a function to compute the deviation of the empirical moments from the simulated ones (function `divergence_model`)
+## Define a function to compute the deviation of the empirical moments from the simulated moments (function `divergence_model`)
 
-We define a function to compute $d(r, \theta)$ for a village $r$ and a given paramter $\theta$.
+We define a function to compute $d(r, \theta)$ for a village $r$ and a given parameter $\theta$.
+Note that this is a vector whose length is the number of moments used for estimation.
+These vectors will be stored to a matrix $D$, whose dimension is (\# of villages, \# of moments) (ie. each row of $D$ is $d(r, \theta)$).
 
 ```{r}
 divergence_model <- function(
@@ -628,8 +648,8 @@ if (modelType == 1){ # Case where qN = qP
     dim = c(num_vills, m, length(qN), length(qP))
     )
   for (i in seq(length(qN))){
+    print(i)
     for (j in seq(length(qP))){
-      print(i)
       theta <- c(qN[i], qP[j])
       D[,,i,j] <- divergence_model(
         X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case
@@ -899,7 +919,7 @@ knitr::kable(param_mat, caption = "Estimation Results")
 
 ```
 
-The point estimates are different from the ones in the paper, which could be because of the simulation.
+The point estimates are slightly different from the ones in the paper, which could be because of the simulation.
 Note that since the original Matlab codes do not specify the random seed, we cannot exactly replicate their results.
 
 The distributions of bootstrap estimates are shown below.
@@ -916,4 +936,13 @@ ggplot(param_boot_df) +
   xlab("qP (bootstrap estimates)")
 ```
 
+## Comments
+
+### Major comments
+- To calculate standard errors, the authors use the "bootstrap" method, in which, instead of randomly resampling observations and estimating the parameters with the resampled dataset, they generate random weights many times and use them in construcing an objective function for estimation. While this substantially reduces the computation time since thye can avoid to calculate the differences between empirical moments and simulated moments for each resampled data, we have not heard of this "bootstrap" method, and any comments on this methods are appreciated.
+- As mentioned above, the original Matlab code does not include the random seed, which prohibits us from reproducing the original results.
+
+### Minor comments
+- When calculating network statistics, the variable about whether having an infected neighboring leader or not (`neighborOfInfected`) is 0 when a HH has both a neighboring infected leader and a neighboring non-infected leader, but it seems it should be 1 as that household has a neighboring infected leader. This may affect how they created the second moment.
+- The distribution of the bootstrap estimates on $qN$ is almost degenerate, which could be due to how they create the grid of $qN$: while up to $qN = 0.01$ the grid step is $0.001$, after that point the grid is pretty sparse ($\dots,\ 0.009,\ 0.01,\ 0.05,\ 0.1,\ 0.15, \dots$). Making the $qN$-grid finer around $0.05$  might change the distribution of the bootstrap estimates and hence the standard error of the estimate.
 
