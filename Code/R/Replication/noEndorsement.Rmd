@@ -205,28 +205,41 @@ Covars <- tibble()
 Sec <- vector("list", length = num_vills)
 
 for (i in seq_along(vills)){
-  # Giant-component vectors (ie. vectors of indicators of whether belonging to giant components in each village)
-  # (contained in a list)
+  # Giant-component vectors 
+  # (ie. vectors of indicators of whether belonging to giant components in each village)
+  # (stored in a list)
   tempinGiant <- read_tsv(file.path(
     project_path, 
-    paste0("datav4.0/Matlab Replication/India Networks/inGiant", as.character(vills[i]), ".csv")
+    paste0(
+      "datav4.0/Matlab Replication/India Networks/inGiant", 
+      as.character(vills[i]), 
+      ".csv"
+      )
     ), col_names = FALSE)
   tempinGiant <- as.logical(pull(tempinGiant))
   inGiant[[i]] <- tempinGiant
   
-  # Leaders vectors (contained in a list)
+  # Leaders vectors (stored in a list)
   templeaders <- read_tsv(file.path(
     project_path, 
-    paste0("datav4.0/Matlab Replication/India Networks/HHhasALeader", as.character(vills[i]), ".csv")
+    paste0(
+      "datav4.0/Matlab Replication/India Networks/HHhasALeader", 
+      as.character(vills[i]), 
+      ".csv"
+      )
     ), col_names = FALSE)
   templeaders_all <- as.logical(pull(templeaders[,2]))
   templeaders <- as.logical(pull(templeaders[tempinGiant,2]))
   leaders[[i]] <- templeaders
   
-  # Take-up vectors (contained in a list)
+  # Take-up vectors (stored in a list)
   tempTakeUp <- read_tsv(file.path(
     project_path, 
-    paste0("datav4.0/Matlab Replication/India Networks/MF", as.character(vills[i]), ".csv")
+    paste0(
+      "datav4.0/Matlab Replication/India Networks/MF", 
+      as.character(vills[i]), 
+      ".csv"
+      )
     ), col_names = FALSE)
   EmpRate[[i]] <- mean(pull(tempTakeUp[!templeaders_all,]))
   tempTakeUp <- as.logical(pull(tempTakeUp[tempinGiant,]))
@@ -239,7 +252,11 @@ for (i in seq_along(vills)){
   # Covariates (only used ones, since W is used as a weight matrix later)
   tempZ <- read_tsv(file.path(
     project_path, 
-    paste0("datav4.0/Matlab Replication/India Networks/hhcovariates", as.character(vills[i]), ".csv")
+    paste0(
+      "datav4.0/Matlab Replication/India Networks/hhcovariates", 
+      as.character(vills[i]), 
+      ".csv"
+      )
     ), col_names = FALSE)
   tempZ <- tempZ[tempinGiant,1:6]
   Z[[i]] <- tempZ
@@ -272,7 +289,13 @@ leader_df <- as_tibble(Outcome) %>%
   bind_cols(Covars)
 glm_res <- glm(value ~ ., data = leader_df, family = "binomial") 
 Betas <- glm_res$coefficients
-kable(summary(glm_res)$coefficients, digits = 2)
+kable(
+  summary(glm_res)$coefficients, 
+  caption = "Logistic regression estimation results", 
+  digits = 2,
+  booktabs = TRUE
+  ) %>%
+  kable_minimal(full_width = F)
 ```
 
 ## Calculate network statistics
@@ -292,7 +315,8 @@ for (i in seq_along(vills)){
   X_graph <- graph_from_adjacency_matrix(X[[i]][[1]], mode = "undirected")
   # Calculate distances between households
   D <- distances(X_graph)
-  # Some how the original Matlab code defines that the distance from a household to itself is 2,
+  # Somehow the original Matlab code defines 
+  # that the distance from a household to itself is 2,
   # so we follow this way here
   diag(D) <- 2
   # Here we are interested only in the distance between a household and leaders,
@@ -351,6 +375,147 @@ for (i in seq_along(vills)){
   netstats[[i]] <- netstats_j
   
 }
+
+```
+
+Here, as a sanity check, I compare the network statistics derived here with the one derived by using the original Matlab code.
+Since we use the same networks to calculate statistics, they should be identical.
+
+```{r}
+
+netstats_mat <- readMat(file.path(
+  project_path, 
+  "datav4.0/Matlab Replication/netstats.mat"
+  ))
+
+netstats_compare <- cbind(
+  c(
+    mean(map_dbl(netstats, function(x) mean(x$minDistFromLeaders))),
+    mean(map_dbl(netstats, function(x) mean(x$avgDistFromLeaders))),
+    mean(map_dbl(netstats, function(x) mean(x$minDistInfectedLeaders))),
+    mean(map_dbl(netstats, function(x) mean(x$minDistNonInfectedLeaders))),
+    mean(map_dbl(netstats, function(x) mean(x$neighborOfInfected))),
+    mean(map_dbl(netstats, function(x) mean(x$neighborOfNonInfected))),
+    mean(map_dbl(netstats, function(x) mean(x$network_degree)))
+  ),
+  c(
+    mean(
+      sapply(seq(num_vills), function(x) mean(netstats_mat[[1]][,,x]$minDistFromLeaders))
+      ),
+    mean(
+      sapply(seq(num_vills), function(x) mean(netstats_mat[[1]][,,x]$avgDistFromLeaders))
+      ),
+    mean(
+      sapply(seq(num_vills), function(x) mean(netstats_mat[[1]][,,x]$minDistInfectedLeaders))
+      ),
+    mean(
+      sapply(seq(num_vills), function(x) mean(netstats_mat[[1]][,,x]$minDistNonInfectedLeaders))
+      ),
+    mean(
+      sapply(seq(num_vills), function(x) mean(netstats_mat[[1]][,,x]$neighborOfInfected))
+      ),
+    mean(
+      sapply(seq(num_vills), function(x) mean(netstats_mat[[1]][,,x]$neighborOfNonInfected))
+      ),
+    mean(
+      sapply(seq(num_vills), function(x) mean(netstats_mat[[1]][,,x]$degree))
+      )
+    )
+  )
+
+colnames(netstats_compare) <- c("R", "Matlab")
+rownames(netstats_compare) <- c(
+  "minDistFromLeaders",
+  "avgDistFromLeaders",
+  "minDistInfectedLeaders",
+  "minDistNonInfectedLeaders",
+  "neighborOfInfected",
+  "neighborOfNonInfected",
+  "degree"
+)
+
+kable(netstats_compare, digits = 3, booktabs = TRUE) %>%
+  kable_minimal(full_width = F)
+
+
+```
+
+Notice that there are differences for several network statistics.
+The reason is the lines 14 and 19 in the file `moments.m`:
+
+`minDistInfectedLeaders = min(D(:,logical(infected.*leaders))')';`
+
+`minDistNonInfectedLeaders = min(D(:,logical((1-infected).*leaders))')';`
+
+These derive minimum distances from take-up and non take-up leaders, respectively.
+When there are more than one take-up leaders, then `D(:,logical(infected.*leaders))'` is a matrix whose number of columns is the number of villagers and number of rows is the number of take-up leaders.
+Then, the operator `min` takes the minimum of each column, and its transpose is a column vector.
+The problem is that, if there is only one take-up leader, then `D(:,logical(infected.*leaders))'` becomes a vector and `min` operator takes the minimum of the lements in the vector, which returns a scalar.
+To avoid this problem, we need to rewrite them as follows:
+
+`minDistInfectedLeaders = min(D(:,logical(infected.*leaders), [], 1)')';`
+
+`minDistNonInfectedLeaders = min(D(:,logical((1-infected).*leaders), [], 1)')';`.
+
+Correcting these gives identical network statistics:
+
+```{r}
+
+netstats_correct_mat <- readMat(file.path(
+  project_path, 
+  "datav4.0/Matlab Replication/netstats_correct.mat"
+  ))
+
+netstats_compare <- cbind(
+  c(
+    mean(map_dbl(netstats, function(x) mean(x$minDistFromLeaders))),
+    mean(map_dbl(netstats, function(x) mean(x$avgDistFromLeaders))),
+    mean(map_dbl(netstats, function(x) mean(x$minDistInfectedLeaders))),
+    mean(map_dbl(netstats, function(x) mean(x$minDistNonInfectedLeaders))),
+    mean(map_dbl(netstats, function(x) mean(x$neighborOfInfected))),
+    mean(map_dbl(netstats, function(x) mean(x$neighborOfNonInfected))),
+    mean(map_dbl(netstats, function(x) mean(x$network_degree)))
+  ),
+  c(
+    mean(
+      sapply(seq(num_vills), function(x) mean(netstats_correct_mat[[1]][,,x]$minDistFromLeaders))
+      ),
+    mean(
+      sapply(seq(num_vills), function(x) mean(netstats_correct_mat[[1]][,,x]$avgDistFromLeaders))
+      ),
+    mean(
+      sapply(seq(num_vills), function(x) mean(netstats_correct_mat[[1]][,,x]$minDistInfectedLeaders))
+      ),
+    mean(
+      sapply(seq(num_vills), function(x) mean(netstats_correct_mat[[1]][,,x]$minDistNonInfectedLeaders))
+      ),
+    mean(
+      sapply(seq(num_vills), function(x) mean(netstats_correct_mat[[1]][,,x]$neighborOfInfected))
+      ),
+    mean(
+      sapply(seq(num_vills), function(x) mean(netstats_correct_mat[[1]][,,x]$neighborOfNonInfected))
+      ),
+    mean(
+      sapply(seq(num_vills), function(x) mean(netstats_correct_mat[[1]][,,x]$degree))
+      )
+    )
+  )
+
+colnames(netstats_compare) <- c("R", "Matlab (corrected)")
+rownames(netstats_compare) <- c(
+  "minDistFromLeaders",
+  "avgDistFromLeaders",
+  "minDistInfectedLeaders",
+  "minDistNonInfectedLeaders",
+  "neighborOfInfected",
+  "neighborOfNonInfected",
+  "degree"
+)
+
+kable(netstats_compare, digits = 3, booktabs = TRUE) %>%
+  kable_minimal(full_width = F)
+
+
 ```
 
 ## Define a function to calculate moments (function `moments`)
@@ -660,7 +825,8 @@ if (modelType == 1){ # Case where qN = qP
 
 # Save the output ------------------
 file_name <- paste0(
-  'data_model_', as.character(modelType), '_mom_', as.character(case), '_', timeVector, '.RData'
+  'data_model_', as.character(modelType), '_mom_', 
+  as.character(case), '_', timeVector, '.RData'
   )
 save(D, file = file.path('../Rdata', file_name))
 ```
@@ -684,7 +850,8 @@ if (twoStepOptimal == 1){
   if (modelType == 1){
     # Load the first-step estimates
     file_name <- paste0(
-      'param_est_', as.character(modelType), '_mom_', as.character(case), '_', timeVector, '_0_0.RData'
+      'param_est_', as.character(modelType), '_mom_', 
+      as.character(case), '_', timeVector, '_0_0.RData'
       )
     load(file = file.path('../Rdata', file_name))
     
@@ -915,7 +1082,12 @@ param_mat <- rbind(
 colnames(param_mat) <- c("qN", "qP")
 rownames(param_mat) <- c("Estimate", "SE")
 
-knitr::kable(param_mat, caption = "Estimation Results")
+kable(
+  param_mat, 
+  caption = "Structural estimation Results", 
+  booktabs = TRUE
+  ) %>%
+  kable_minimal(full_width = F)
 
 ```
 
@@ -923,16 +1095,19 @@ The point estimates are slightly different from the ones in the paper, which cou
 Note that since the original Matlab codes do not specify the random seed, we cannot exactly replicate their results.
 
 The distributions of bootstrap estimates are shown below.
+The red lines indicate point estimates.
 
 ```{r}
 ggplot(param_boot_df) +
   geom_histogram(aes(x = qN)) +
+  geom_vline(xintercept = param_est[1], color = "red") +
   xlab("qN (bootstrap estimates)")
 ```
 
 ```{r}
 ggplot(param_boot_df) +
   geom_histogram(aes(x = qP)) +
+  geom_vline(xintercept = param_est[2], color = "red") +
   xlab("qP (bootstrap estimates)")
 ```
 
@@ -943,6 +1118,7 @@ ggplot(param_boot_df) +
 - As mentioned above, the original Matlab code does not include the random seed, which prohibits us from reproducing the original results.
 
 ### Minor comments
+- As discussed above, there is a small bug in the code to calculate network statistics, which could be why our estimates and the original estimates slightly differ.
 - When calculating network statistics, the variable about whether having an infected neighboring leader or not (`neighborOfInfected`) is 0 when a HH has both a neighboring infected leader and a neighboring non-infected leader, but it seems it should be 1 as that household has a neighboring infected leader. This may affect how they created the second moment.
 - The distribution of the bootstrap estimates on $qN$ is almost degenerate, which could be due to how they create the grid of $qN$: while up to $qN = 0.01$ the grid step is $0.001$, after that point the grid is pretty sparse ($\dots,\ 0.009,\ 0.01,\ 0.05,\ 0.1,\ 0.15, \dots$). Making the $qN$-grid finer around $0.05$  might change the distribution of the bootstrap estimates and hence the standard error of the estimate.
 

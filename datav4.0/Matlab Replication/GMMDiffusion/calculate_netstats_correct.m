@@ -147,14 +147,14 @@ for vilnum = vills
     avgDistFromLeaders = mean(D(:,logical(leaders{counter}))')';
     
     if sum(TakeUp{counter}.*leaders{counter})>0
-        minDistInfectedLeaders = min(D(:,logical(TakeUp{counter}.*leaders{counter}))')';
-        %minDistInfectedLeaders = min(D(:,logical(TakeUp{counter}.*leaders{counter}))', [], 1)';
+        %minDistInfectedLeaders = min(D(:,logical(TakeUp{counter}.*leaders{counter}))')';
+        minDistInfectedLeaders = min(D(:,logical(TakeUp{counter}.*leaders{counter}))', [], 1)';
     else
         minDistInfectedLeaders = 0;
     end
     if sum((1-TakeUp{counter}).*leaders{counter})>0
-        minDistNonInfectedLeaders = min(D(:,logical((1-TakeUp{counter}).*leaders{counter}))')';
-        %minDistNonInfectedLeaders = min(D(:,logical((1-TakeUp{counter}).*leaders{counter}))', [], 1)';
+        %minDistNonInfectedLeaders = min(D(:,logical((1-TakeUp{counter}).*leaders{counter}))')';
+        minDistNonInfectedLeaders = min(D(:,logical((1-TakeUp{counter}).*leaders{counter}))', [], 1)';
     else
         minDistNonInfectedLeaders = 0;
     end
@@ -183,7 +183,7 @@ for vilnum = vills
     D_list{counter} = D;
 end
 
-save("netstats.mat", "netstats")
+save("netstats_correct.mat", "netstats")
 save("D.mat", "D_list")
 
 
