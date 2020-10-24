@@ -47,6 +47,10 @@
 # R
 !/**/*.R
 !/**/*.Rmd
+!/**/data_model_3_mom_1_trimesters.RData
+!/**/param_est_3_mom_1_trimesters_0_0.RData
+!/**/param_est_3_mom_1_trimesters_1_0.RData
+!/**/param_est_3_mom_1_trimesters_1_1.RData
 
 # LaTeX
 !/**/*.tex
