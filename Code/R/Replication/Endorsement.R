@@ -10,15 +10,18 @@ packages <- c(
   "ggplot2",
   "plotly",
   "dqrng",
-  "Matrix"
+  "Matrix",
+  "microbenchmark",
+  "Rfast",
+  "RcppArmadillo"
 )
 
-pacman::p_load(packages, character.only = T)
+pacman::p_load(packages, character.only = TRUE)
 
 # Global setting
 user <- "Hiro"
 if (user == "Hiro"){
-  project_path <- "../.."
+  project_path <- "/Users/mizuhirosuzuki/Dropbox/MFdiffusion_replication/"
 }
 
 # random seed
@@ -32,10 +35,12 @@ twoStepOptimal <- 0
 S <- 75
 # Time span for one period
 timeVector <- 'trimesters'
-# Model type (1 -> qN = qP, 3 -> qN \ne qP)
-modelType <- 1
+# Model type (2 -> qN = qP, 4 -> qN \ne qP)
+modelType <- 2
 # Whether bootstrap step or not (0 = No, 1 = Yes)
 bootstrap <- 0
+
+relative = 0
 
 # --------------------------
 
@@ -45,7 +50,7 @@ vills <- c(1:4, 6, 9, 12, 15, 19:21, 23:25, 29, 31:33, 36,
            64:65, 67:68, 70:73, 75)
 num_vills <- length(vills)
 
-# Number of moment conditions
+# Select moments
 
 if (case == 1){
   m <- 5
@@ -87,6 +92,9 @@ hermits <- vector("list", length = num_vills)
 Z <- vector("list", length = num_vills)
 TakingLeaders <- vector("list", length = num_vills)
 ZLeaders <- vector("list", length = num_vills)
+OmegaE <- vector("list", length = num_vills)
+OmegaD <- vector("list", length = num_vills)
+OmegaN <- vector("list", length = num_vills)
 Outcome <- c()
 Covars <- tibble()
 Sec <- vector("list", length = num_vills)
@@ -109,12 +117,29 @@ for (i in seq_along(vills)){
   EmpRate[[i]] <- mean(pull(tempTakeUp[!templeaders_all,]))
   tempTakeUp <- as.logical(pull(tempTakeUp[tempinGiant,]))
   TakeUp[[i]] <- tempTakeUp
-
+  
+  # Omega matrices (contained in a list)
+  if (relative == 0){
+    tempOmegaE <- read_csv(file.path(project_path, paste0("datav4.0/Matlab Replication/India Networks/Omega_abs", as.character(vills[i]), ".csv")), col_names = FALSE)
+    tempOmegaD <- read_csv(file.path(project_path, paste0("datav4.0/Matlab Replication/India Networks/DOmega_abs", as.character(vills[i]), ".csv")), col_names = FALSE)
+    tempOmegaN <- read_csv(file.path(project_path, paste0("datav4.0/Matlab Replication/India Networks/NOmega_abs", as.character(vills[i]), ".csv")), col_names = FALSE)
+  } else if (relative == 1){
+    tempOmegaE <- read_csv(file.path(project_path, paste0("datav4.0/Matlab Replication/India Networks/Omega_rel", as.character(vills[i]), ".csv")), col_names = FALSE)
+    tempOmegaD <- read_csv(file.path(project_path, paste0("datav4.0/Matlab Replication/India Networks/DOmega_rel", as.character(vills[i]), ".csv")), col_names = FALSE)
+    tempOmegaN <- read_csv(file.path(project_path, paste0("datav4.0/Matlab Replication/India Networks/NOmega_rel", as.character(vills[i]), ".csv")), col_names = FALSE)
+  }
+  tempOmegaE <- tempOmegaE[tempinGiant, tempinGiant]
+  tempOmegaD <- tempOmegaD[tempinGiant, tempinGiant]
+  tempOmegaN <- tempOmegaN[tempinGiant, tempinGiant]
+  OmegaE[[i]] <- as.matrix(tempOmegaE)
+  OmegaD[[i]] <- as.matrix(tempOmegaD)
+  OmegaN[[i]] <- as.matrix(tempOmegaN)
+  
   # Hermits (isolated HHs)
-  d <- rowSums(X[[i]][[1]]) # number of neighbors
+  d <- rowsums(X[[i]][[1]]) # number of neighbors
   hermits[[i]] <- (d == 0)
   
-  # Covariates (only used ones, since W is used as a weight matrix later)
+  # Covariates (only variables that will be used in the analysis below are loaded, since W is used as a weight matrix later)
   tempZ <- read_tsv(file.path(project_path, paste0("datav4.0/Matlab Replication/India Networks/hhcovariates", as.character(vills[i]), ".csv")), col_names = FALSE)
   tempZ <- tempZ[tempinGiant,1:6]
   Z[[i]] <- tempZ
@@ -133,12 +158,13 @@ for (i in seq_along(vills)){
 }
 
 # Select parameter grid --------------------
+lambda <- c(seq(-1, -0.3, 0.1), seq(-0.25, 0.3, 0.05), seq(0.4, 1, 0.1))
 
-if (modelType == 1){
-  qN <- c(seq(0, 0.01, 0.001), seq(0.05, 1, 0.05))
-} else if (modelType == 3){
-  qN <- c(seq(0, 0.01, 0.001), seq(0.05, 1, 0.05))
-  qP <- c(seq(0, 0.1, 0.005), seq(0.15, 1, 0.05))
+if (modelType == 2){
+  qN <- c(seq(0, 0.5, 0.05), seq(0.6, 1, 0.1))
+} else if (modelType == 4){
+  qN <- c(seq(0, 0.5, 0.05), seq(0.6, 1, 0.1))
+  qP <- c(seq(0, 0.5, 0.05), seq(0.6, 1, 0.1))
 }
 
 # Logistic fit to get coefficients for covariates and the constant ----------------------
@@ -154,8 +180,6 @@ for (i in seq_along(vills)){
   
   X_graph <- graph_from_adjacency_matrix(X[[i]][[1]], mode = "undirected")
   D <- distances(X_graph)
-  diag(D) <- 2
-  D[,!leaders[[i]]] = 0
   
   minDistFromLeaders <- apply(D[, which(leaders[[i]])], 1, min)
   avgDistFromLeaders <- apply(D[, which(leaders[[i]])], 1, mean)
@@ -184,7 +208,7 @@ for (i in seq_along(vills)){
   # minimum distance to infected leaders is 0 or >1 & minimum distance to non-infected leaders is 1 
   neighborOfNonInfected <- (((minDistInfectedLeaders == 1) - (minDistNonInfectedLeaders == 1)) < 0) 
   
-  network_degree <- rowSums(X[[i]][[1]])
+  network_degree <- rowsums(X[[i]][[1]])
   
   netstats_j <- list(
     minDistFromLeaders = minDistFromLeaders,
@@ -211,7 +235,7 @@ moments <- function(X, leaders, netstats, infected, Sec, j, case){
 
   if (case == 1){
     # 1. Fraction of nodes that have no taking neighbors but are takers themselves
-    infectedNeighbors <- rowSums(outer(rep(1, N), infected) * X) # Number of infected neighbors
+    infectedNeighbors <- rowsums(outer(rep(1, N), infected) * X) # Number of infected neighbors
     if (sum(infectedNeighbors == 0 & network_degree > 0) > 0){
       stats_1 <- sum((infectedNeighbors == 0 & infected == 1 & network_degree > 0)) / sum(infectedNeighbors == 0 & network_degree > 0)
     } else if (sum(infectedNeighbors == 0 & network_degree > 0) == 0){
@@ -239,7 +263,7 @@ moments <- function(X, leaders, netstats, infected, Sec, j, case){
     stats_4 <- sum(NonHermitTakers * ShareofTakingNeighbors) / sum(NonHermits)
 
     # 5. Covariance of individuals taking with share of second neighbors taking
-    infectedSecond = rowSums(Sec * outer(infected, rep(1, N)))
+    infectedSecond = rowsums(Sec * outer(infected, rep(1, N)))
     ShareofSecond = infectedSecond[NonHermits] / network_degree[NonHermits]
     stats_5 <- sum(NonHermitTakers * ShareofSecond) / sum(NonHermits)
 
@@ -247,7 +271,7 @@ moments <- function(X, leaders, netstats, infected, Sec, j, case){
 
   } else if (case == 2){
     # 1. Fraction of nodes that have no taking neighbors but are takers themselves
-    infectedNeighbors <- rowSums(outer(rep(1, N), infected) * X) # Number of infected neighbors
+    infectedNeighbors <- rowsums(outer(rep(1, N), infected) * X) # Number of infected neighbors
 
     if (sum(infectedNeighbors == 0 & network_degree > 0) > 0){
       stats_1 <- sum((infectedNeighbors == 0 & infected == 1 & network_degree > 0)) / sum(infectedNeighbors == 0 & network_degree > 0)
@@ -262,7 +286,7 @@ moments <- function(X, leaders, netstats, infected, Sec, j, case){
     stats_2 <- sum(NonHermitTakers * ShareofTakingNeighbors) / sum(NonHermits)
 
     # 3. Covariance of individuals taking with share of second neighbors taking
-    infectedSecond = rowSums(Sec * outer(infected, rep(1, N)))
+    infectedSecond = rowsums(Sec * outer(infected, rep(1, N)))
     ShareofSecond = infectedSecond[NonHermits] / network_degree[NonHermits]
     stats_3 <- sum(NonHermitTakers * ShareofSecond) / sum(NonHermits)
 
@@ -273,7 +297,7 @@ moments <- function(X, leaders, netstats, infected, Sec, j, case){
     leaderTrue = (leaders > 0) # a variable that denotes whether a node is either a leader
 
     # 1. Fraction of nodes that have no taking neighbors but are takers themselves
-    infectedNeighbors <- rowSums((outer(rep(1, N), infected)) * X) # Number of infected neighbors
+    infectedNeighbors <- rowsums((outer(rep(1, N), infected)) * X) # Number of infected neighbors
 
     if (sum(infectedNeighbors == 0 & network_degree > 0) > 0){
       stats_1 <- sum((infectedNeighbors == 0 & (leaderTrue == 0) & infected == 1 & network_degree > 0)) / sum(infectedNeighbors == 0 & network_degree > 0)
@@ -290,7 +314,7 @@ moments <- function(X, leaders, netstats, infected, Sec, j, case){
     stats_2 <- sum(NonHermitTakers * ShareofTakingNeighbors) / sum(NonHermitsNonLeaders)
 
     # 3. Covariance of individuals taking with share of second neighbors taking
-    infectedSecond = rowSums(Sec * outer(infected, rep(1, N)))
+    infectedSecond = rowsums(Sec * outer(infected, rep(1, N)))
     ShareofSecond = infectedSecond[NonHermitsNonLeaders] / network_degree[NonHermitsNonLeaders]
     stats_3 <- sum(NonHermitTakers * ShareofSecond) / sum(NonHermitsNonLeaders)
 
@@ -301,7 +325,7 @@ moments <- function(X, leaders, netstats, infected, Sec, j, case){
     leaderTrue = (leaders > 0) # a variable that denotes whether a node is either a leader
     
     # 1. Fraction of nodes that have no taking neighbors but are takers themselves
-    infectedNeighbors <- rowSums(outer(rep(1, N), infected) * X %*% (1 - leaderTrue)) # Number of infected neighbors
+    infectedNeighbors <- rowsums(outer(rep(1, N), infected) * X %*% (1 - leaderTrue)) # Number of infected neighbors
 
     if (sum(infectedNeighbors == 0 & network_degree > 0) > 0){
       stats_1 <- sum((infectedNeighbors == 0 & (leaderTrue == 0) & infected == 1 & network_degree > 0)) / sum(infectedNeighbors == 0 & network_degree > 0)
@@ -318,7 +342,7 @@ moments <- function(X, leaders, netstats, infected, Sec, j, case){
     stats_2 <- sum(NonHermitTakers * ShareofTakingNeighbors) / sum(NonHermitsNonLeaders)
 
     # 3. Covariance of individuals taking with share of second neighbors taking
-    infectedSecond = rowSums(Sec * outer(infected, rep(1, N)) %*% (1 - leaderTrue))
+    infectedSecond = rowsums(Sec * outer(infected, rep(1, N)) %*% (1 - leaderTrue))
     ShareofSecond = infectedSecond[NonHermitsNonLeaders] / network_degree[NonHermitsNonLeaders]
     stats_3 <- sum(NonHermitTakers * ShareofSecond) / sum(NonHermitsNonLeaders)
 
@@ -331,160 +355,277 @@ moments <- function(X, leaders, netstats, infected, Sec, j, case){
 # test
 moments(X[[1]][[1]], leaders[[1]], netstats[[1]], TakeUp[[1]], Sec[[1]], 1, 1)
 
-# Define a function to simulate diffusion of MF (diffusion_model) ---------------------
+# Define a function to simulate diffusion of MF (endorsement_model) ---------------------
 
-diffusion_model <- function(parms, Z, Betas, X, leaders, j, t_period, EmpRate){
+endorsement_model <- function(parms, Z, Betas, X, leaders, OmegaE, OmegaD, OmegaN, j, t_period, EmpRate){
   
   qN <- parms[1] # Probability non-taker transmits information
-  qP <- parms[2] # Probsbility that a just-informed-taker transmits information
+  qP <- parms[2] # Probability that a just-informed-taker transmits information
+  lambda <- parms[3] # Coefficient in logit governing the probability of being a taker
   N <- nrow(X) # Number of households
   
-  infected <- rep(FALSE, N) # Nobody has been infected yet.
-  infectedbefore <- rep(FALSE, N) # Nobody has been infected yet.
-  contagiousbefore <- rep(FALSE, N) # People who were contagious before
-  contagious <- leaders # Newly informed/contagious.
-  dynamicInfection <- rep(0, t_period) # Will be a vector that tracks the infection rate for the number of periods it takes place
-  
+  infectedbefore_list <- list()
+  dynamicInfection_list <- list()
+  contagiousbefore_list <- list()
   x <- matrix(dqrunif(N * t_period), N, t_period)
-  t <- 1
-  for (t in seq(t_period)){
-    qNt <- qN
-    qPt <- qP
-    
-    # Step 1: Take-up decision based on newly informed
-    LOGITprob <- 1 / (1 + exp(- cbind(rep(1, N), as.matrix(Z)) %*% Betas))
-    infected <- ((!contagiousbefore & contagious & as.vector(x[,t] < LOGITprob)) | infected)
-    s1 <- sum(infected)
-    s2 <- sum(infectedbefore)
-    infectedbefore <- (infectedbefore | infected)
-    contagiousbefore <- (contagious | contagiousbefore)
-    C <- sum(contagious)
-    
-    # Step 2: Information flows
-    transmitPROB <- (contagious & infected) * qPt + (contagious & !infected) * qNt
-    contagionlikelihood <- X[contagious,] * outer(transmitPROB[contagious], rep(1, N))
-    
-    # Step 3
-    # start_time <- Sys.time()
-    contagious <- ((colSums(contagionlikelihood > matrix(dqrunif(C * N), C, N)) > 0) | contagiousbefore)
-    # contagious <- ((t(contagionlikelihood > matrix(dqrunif(C * N), C, N)) %*% rep(1, C) > 0) | contagiousbefore)
-    dynamicInfection[t] <- sum(infectedbefore) / N
-    # end_time <- Sys.time()
-    # print(end_time - start_time)
-
-  }
+  Omega_list <- list(OmegaE, OmegaD, OmegaN)
   
-  return(list(infectedbefore, dynamicInfection, contagious))
+  for (k in seq(3)){
+    
+    infected <- rep(FALSE, N) # Nobody has been infected yet.
+    infectedbefore <- rep(FALSE, N) # Nobody has been infected yet.
+    contagiousbefore <- rep(FALSE, N) # People who were contagious before
+    contagious <- leaders # Newly informed/contagious.
+    transmissionHist <- matrix(rep(FALSE, N * N), nrow = N, ncol = N) 
+    dynamicInfection <- rep(0, t_period) # Will be a vector that tracks the infection rate 
+                                         # for the number of periods it takes place
+    
+    Omega <- Omega_list[[k]]
+    
+    for (t in seq(t_period)){
+      
+      # Step 1: Take-up decision based on newly informed
+      z <- outer(infectedbefore, rep(1, N))
+      # start_time <- Sys.time()
+      # regressor <- diag(Omega %*% (transmissionHist * z)) / diag(Omega %*% transmissionHist)
+      # regressor <- colSums(t(Omega) * (transmissionHist * z)) / colSums(t(Omega) * transmissionHist)
+      regressor <- colsums(t(Omega) * (transmissionHist * z)) / colsums(t(Omega) * transmissionHist)
+      # end_time <- Sys.time()
+      # print(end_time - start_time)
+      regressor[is.na(regressor) | is.infinite(regressor)] <- 0
+      LOGITprob <- 1 / (1 + exp(- cbind(rep(1, N), as.matrix(Z)) %*% Betas) - regressor * lambda)
+      
+      infected <- ((!contagiousbefore & contagious & as.vector(x[,t] < LOGITprob)) | infected)
+      s1 <- sum(infected)
+      s2 <- sum(infectedbefore)
+      infectedbefore <- (infectedbefore | infected)
+      contagiousbefore <- (contagious | contagiousbefore)
+      C <- sum(contagious)
+      
+      # Step 2: Information flows
+      transmitPROB <- (contagious & infected) * qP + (contagious & !infected) * qN
+      contagionlikelihood <- X * outer(transmitPROB, rep(1, N))
+      
+      # Step 3
+      t0 <- matrix(dqrunif(N * N), nrow = N, ncol = N)
+      t1 <- (contagionlikelihood > t0) # a full transmission matrix
+      
+      # zero out stuff because one can only transmit if contagious, and one
+      # cannot be transmitted to unless they were not contagious before
+      t1[!contagious,] <- FALSE
+      transmissionHist <- (transmissionHist | t1)
+      
+      t2 <- t1[contagious, !contagiousbefore] # which contagious households transmit to previously non-contagious
+      contagious[!contagiousbefore] <- (sum(t2) > 0)
+      dynamicInfection[t] <- sum(infectedbefore) / N
+  
+    } 
+    
+    infectedbefore_list[[k]] <- infectedbefore
+    dynamicInfection_list[[k]] <- dynamicInfection
+    contagiousbefore_list[[k]] <- contagiousbefore
+    
+  }
+   
+  return(list(infectedbefore_list, dynamicInfection_list, contagiousbefore_list))
   
 }
 
 # test
-system.time(diffusion_model(c(0.3, 0.1), Z[[1]], Betas, X[[1]][[1]], leaders[[1]], 1, t_period[1], EmpRate[[1]]))
+system.time(endorsement_model(c(0.3, 0.1, 0.2), Z[[2]], Betas, X[[2]][[1]], leaders[[2]], OmegaE[[2]], OmegaD[[2]], OmegaN[[2]], 2, t_period[2], EmpRate[[2]]))
 
-# Define a function to compute the deviation of the empirical moments from the simulated ones (divergence_model) ---------------------------
-# Model 1 = q
-# Model 3 = qN, qP
-# This function relies on diffusion_model as the transmission process and moments
+# Define a function to compute the deviation of the empirical moments from the simulated ones (divergence_endorsement_model) ---------------------------
+# Model 2 = q
+# Model 4 = qN, qP
+# This function relies on endorsement_model as the transmission process and moments
 
-divergence_model <- function(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case){
+divergence_endorsement_model <- function(X, Z, Betas, leaders, OmegaE, OmegaD, OmegaN, TakeUp, Sec, theta, m, S, t_period, EmpRate, case){
 
   # Parameters
   G <- length(X)
 
   # Computation of the vector of divergences across all the moments
   EmpiricalMoments <- matrix(0, G, m)
-  MeanSimulatedMoments <- matrix(0, G, m)
-  D <- matrix(0, G, m)
-  TimeSim <- matrix(0, G, S)
+  MeanSimulatedMomentsE <- matrix(0, G, m)
+  MeanSimulatedMomentsD <- matrix(0, G, m)
+  MeanSimulatedMomentsN <- matrix(0, G, m)
+  
+  DE <- matrix(0, G, m)
+  DD <- matrix(0, G, m)
+  DN <- matrix(0, G, m)
 
   for (g in seq(G)){
+    
+    print(g)
     # Compute moments - G x m object
-    start_time <- Sys.time()
     EmpiricalMoments[g,] <- moments(X[[g]][[1]], leaders[[g]], netstats[[g]], TakeUp[[g]], Sec[[g]], g, case)
-    end_time <- Sys.time()
-    print(end_time - start_time)
     
     # Compute simulated moments
-    SimulatedMoments <- matrix(0, S, m)
+    SimulatedMomentsE <- matrix(0, S, m)
+    SimulatedMomentsD <- matrix(0, S, m)
+    SimulatedMomentsN <- matrix(0, S, m)
     for (s in seq(S)){
-      infectedSIM <- diffusion_model(theta, Z[[g]], Betas, X[[g]][[1]], leaders[[g]], g, t_period[g], EmpRate[[g]])
-      SimulatedMoments[s,] <- moments(X[[g]][[1]], leaders[[g]], netstats[[g]], as.vector(infectedSIM[[1]]), Sec[[g]], g, case)
+      endorsement_model_output <- endorsement_model(theta, Z[[g]], Betas, X[[g]][[1]], leaders[[g]], OmegaE[[g]], OmegaD[[g]], OmegaN[[g]], g, t_period[g], EmpRate[[g]])
+      infectedbefore_output <- endorsement_model_output[[1]]
+      SimulatedMomentsE[s,] <- moments(X[[g]][[1]], leaders[[g]], netstats[[g]], as.vector(infectedbefore_output[[1]]), Sec[[g]], g, case)
+      SimulatedMomentsD[s,] <- moments(X[[g]][[1]], leaders[[g]], netstats[[g]], as.vector(infectedbefore_output[[2]]), Sec[[g]], g, case)
+      SimulatedMomentsN[s,] <- moments(X[[g]][[1]], leaders[[g]], netstats[[g]], as.vector(infectedbefore_output[[3]]), Sec[[g]], g, case)
     }
     
     # Compute the mean simulated moment - a G x m object
-    MeanSimulatedMoments[g,] <- colMeans(SimulatedMoments)
-    D[g,] <- MeanSimulatedMoments[g,] - EmpiricalMoments[g,]
+    MeanSimulatedMomentsE[g,] <- colMeans(SimulatedMomentsE)
+    MeanSimulatedMomentsD[g,] <- colMeans(SimulatedMomentsD)
+    MeanSimulatedMomentsN[g,] <- colMeans(SimulatedMomentsN)
+    
+    DE[g,] <- MeanSimulatedMomentsE[g,] - EmpiricalMoments[g,]
+    DD[g,] <- MeanSimulatedMomentsD[g,] - EmpiricalMoments[g,]
+    DN[g,] <- MeanSimulatedMomentsN[g,] - EmpiricalMoments[g,]
   }
   
-  return(D)
+  return(list(DE, DD, DN))
 
 }
 
 # test
-system.time(divergence_model(X, Z, Betas, leaders, TakeUp, Sec, c(0.3, 0.1), 5, 75, t_period, EmpRate, 1))
+system.time(divergence_endorsement_model(X, Z, Betas, leaders, OmegaE, OmegaD, OmegaN, TakeUp, Sec, c(0.3, 0.1, 0.1), 5, 75, t_period, EmpRate, 1))
 
 # Running the model
 
-if (modelType == 1){ # Case where qN = qP
-  D <- array(rep(0, num_vills * m * length(qN)), dim = c(num_vills, m, length(qN)))
+if (modelType == 2){ # Case where qN = qP
+  DE <- array(rep(0, num_vills * m * length(qN) * length(lambda)), dim = c(num_vills, m, length(qN), length(lambda)))
+  DD <- array(rep(0, num_vills * m * length(qN) * length(lambda)), dim = c(num_vills, m, length(qN), length(lambda)))
+  DN <- array(rep(0, num_vills * m * length(qN) * length(lambda)), dim = c(num_vills, m, length(qN), length(lambda)))
   
   for (i in seq(length(qN))){
-    print(i)
-    theta <- c(qN[i], qN[i])
-    D[,,i] <- divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case)
+    for (j in seq(length(lambda))){
+      print(i)
+      theta <- c(qN[i], qN[i], lambda[j])
+      model_output <- divergence_endorsement_model(X, Z, Betas, leaders, OmegaE, OmegaD, OmegaN, TakeUp, Sec, theta, m, S, t_period, EmpRate, case)
+      DE[,,i,j] <- model_output[[1]]
+      DD[,,i,j] <- model_output[[2]]
+      DN[,,i,j] <- model_output[[3]]
+    }
   }
-} else if (modelType == 3){ # Case where qN \ne qP
-  D <- array(rep(0, num_vills * m * length(qN) * length(qP)), dim = c(num_vills, m, length(qN), length(qP)))
+} else if (modelType == 4){ # Case where qN \ne qP
+  DE <- array(rep(0, num_vills * m * length(qN) * length(qP) * length(lambda)), dim = c(num_vills, m, length(qN), length(qP), length(lambda)))
+  DD <- array(rep(0, num_vills * m * length(qN) * length(qP) * length(lambda)), dim = c(num_vills, m, length(qN), length(qP), length(lambda)))
+  DN <- array(rep(0, num_vills * m * length(qN) * length(qP) * length(lambda)), dim = c(num_vills, m, length(qN), length(qP), length(lambda)))
   for (i in seq(length(qN))){
     for (j in seq(length(qP))){
-      # print(i)
-      theta <- c(qN[i], qP[j])
-      D[,,i,j] <- divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case)
+      for (k in seq(length(lambda))){
+        # print(i)
+        theta <- c(qN[i], qP[j], lambda[k])
+        model_output <- divergence_endorsement_model(X, Z, Betas, leaders, OmegaE, OmegaD, OmegaN, TakeUp, Sec, theta, m, S, t_period, EmpRate, case)
+        DE[,,i,j,k] <- model_output[[1]]
+        DD[,,i,j,k] <- model_output[[2]]
+        DN[,,i,j,k] <- model_output[[3]]
+      }
     }
   }
 }
 
+D_list <- list(DE, DD, DN)
 
 # Save the output ------------------
 file_name <- paste0('data_model_', as.character(modelType), '_mom_', as.character(case), '_', timeVector, '.RData')
-save(D, file = file.path('Rdata', file_name))
+save(D_list, file = file.path('Rdata', file_name))
 
 # Running the aggregator ------------------
 
 file_name <- paste0('data_model_', as.character(modelType), '_mom_', as.character(case), '_', timeVector, '.RData')
 load(file = file.path('Rdata', file_name))
+DE <- D_list[[1]]
+DD <- D_list[[2]]
+DN <- D_list[[3]]
 
 if (bootstrap == 0){
   B <- 1
 } else if (bootstrap == 1){
   B <- 1000
 }
-Q <- zeros(B, 1)
+
+
+if (modelType == 2){
+  DDTotal <- array(rep(0, length(qN) * length(lambda) * G * m), dim = c(length(qN), length(lambda), G, m))
+  DETotal <- array(rep(0, length(qN) * length(lambda) * G * m), dim = c(length(qN), length(lambda), G, m))
+  DNTotal <- array(rep(0, length(qN) * length(lambda) * G * m), dim = c(length(qN), length(lambda), G, m))
+  
+  for (i in seq(length(qN))){
+    for (k in seq(length(lambda))){
+      DDTotal[i,k,,] <- DD[i,k]
+      DETotal[i,k,,] <- DE[i,k]
+      DNTotal[i,k,,] <- DN[i,k]
+    }
+  }
+} else if (modelType == 4){
+  DDTotal <- array(rep(0, length(qN) * length(qP) * length(lambda) * G * m), dim = c(length(qN), length(qP), length(lambda), G, m))
+  DETotal <- array(rep(0, length(qN) * length(qP) * length(lambda) * G * m), dim = c(length(qN), length(qP), length(lambda), G, m))
+  DNTotal <- array(rep(0, length(qN) * length(qP) * length(lambda) * G * m), dim = c(length(qN), length(qP), length(lambda), G, m))
+  
+  for (i in seq(length(qN))){
+    for (k in seq(length(lambda))){
+      DDTotal[i,j,k,,] <- DD[i,j,k]
+      DETotal[i,j,k,,] <- DE[i,j,k]
+      DNTotal[i,j,k,,] <- DN[i,j,k]
+    }
+  }
+}
 
 # Two step optimal weights
 if (twoStepOptimal == 1){
-  if (modelType == 1){
-    qN_info <- 0.1
-    qP_info <- 0.1
-    theta <- c(qN_info, qP_info)
-    D <- divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case);
-    A <- (t(D) %*% D) / num_vills
-    W <- inv(A)
-  } else if (modelType == 3){
-    # Load the first-step estimates
-    file_name <- paste0('param_est_', as.character(modelType), '_mom_', as.character(case), '_', timeVector, '_', as.character(0), '.RData')
-    load(param_est)
-    
-    qN_info <- param_est[1,1]
-    qP_info <- param_est[1,2]
-    theta <- c(qN_info, qP_info)
-    D <- divergence_model(X, Z, Betas, leaders, TakeUp, Sec, theta, m, S, t_period, EmpRate, case);
-    A <- (t(D) %*% D) / num_vills
-    W <- inv(A)
-  }
+  # For E matrix
+  #theta <- c(qN_E, qP_E, lambda_E)
+  theta <- c(0.1, 0.1, 0.3)
+  E_out <- divergence_endorsement_model(
+    X, Z, Betas, leaders, OmegaE, OmegaD, OmegaN, TakeUp, 
+    Sec, theta, m, S, t_period, EmpRate, case
+    )
+  DE <- E_out[[1]]
+  AE <- (t(DE) %*% DE) / num_vills
+  WE <- inv(AE)
+  
+  # For D matrix
+  #theta <- c(qN_D, qP_D, lambda_D)
+  theta <- c(0.1, 0.1, 0.3)
+  D_out <- divergence_endorsement_model(
+    X, Z, Betas, leaders, OmegaE, OmegaD, OmegaN, TakeUp, 
+    Sec, theta, m, S, t_period, EmpRate, case
+    )
+  DD <- D_out[[1]]
+  AD <- (t(DD) %*% DD) / num_vills
+  WD <- inv(AD)
+  
+  # For N matrix
+  #theta <- c(qN_N, qP_N, lambda_N)
+  theta <- c(0.1, 0.1, 0.3)
+  N_out <- divergence_endorsement_model(
+    X, Z, Betas, leaders, OmegaE, OmegaD, OmegaN, TakeUp, 
+    Sec, theta, m, S, t_period, EmpRate, case
+    )
+  DN <- N_out[[1]]
+  AN <- (t(DN) %*% DN) / num_vills
+  WN <- inv(AN)
 } else if (twoStepOptimal == 0){
-  W <- eye(m)
+  WE <- eye(m)
+  WD <- eye(m)
+  WN <- eye(m)
 }
+
+# Pre-allocation ---------
+QEndE <- rep(0, B)
+QEndD <- rep(0, B)
+QEndN <- rep(0, B)
+TestEndEEndD <- rep(0, B)
+TestEndDEndN <- rep(0, B)
+TestEndEEndN <- rep(0, B)
+importantparmsE <- c()
+importantparmsD <- c()
+importantparmsN <- c()
+valE <- c()
+valD <- c()
+valN <- c()
+
+goopy
 
 # Aggregate -------------
 
@@ -500,19 +641,33 @@ for (b in seq(B)){
     wt[b,] <- rep(1 / num_vills, num_vills)
   }
 
-  if (modelType == 1){
-    param_est <- zeros(B, 1)
-  } else if (modelType == 3){
-    param_est <- zeros(B, 2)
-  }
-      
   # For each model, generate the criterion function value for this
   # bootstrap run
 
-  # Info model
-  if (modelType == 1){
+  # Endorsement model
+  if (modelType == 2){
+    momFuncE <- array(rep(0, length(qN) * length(lambda) * B * m), dim = c(length(qN), length(lambda), B, m))
+    momFuncD <- array(rep(0, length(qN) * length(lambda) * B * m), dim = c(length(qN), length(lambda), B, m))
+    momFuncN <- array(rep(0, length(qN) * length(lambda) * B * m), dim = c(length(qN), length(lambda), B, m))
+    
+    for (i in seq(length(qN))){
+      for (k in seq(length(lambda))){
+        # Compute the moment function
+        momFuncE[i,k,b,] <- wt[b,] %*% t(DETotal[i,k,,]) / G
+        momFuncD[i,k,b,] <- wt[b,] %*% t(DDTotal[i,k,,]) / G
+        momFuncN[i,k,b,] <- wt[b,] %*% t(DNTotal[i,k,,]) / G
+        
+        # Criterion function
+        QEndorseE[i,k,b] <- t(momFuncE[i,k,b,]) %*% WE %*% momFuncE[i,k,b,]
+        QEndorseD[i,k,b] <- t(momFuncD[i,k,b,]) %*% WD %*% momFuncD[i,k,b,]
+        QEndorseN[i,k,b] <- t(momFuncN[i,k,b,]) %*% WN %*% momFuncN[i,k,b,]
+      }
+    }
+    
+    
     momFunc <- array(rep(0, length(qN) * B * m), dim = c(length(qN), B, m))
     Qa <- array(rep(0, length(qN) * B), dim = c(length(qN), B))
+    param_est <- zeros(B, 1)
     for (i in seq(length(qN))){
       # Compute the moment function
       momFunc[i,b,] <- wt[b,] %*% D[,,i] / num_vills
@@ -520,9 +675,13 @@ for (b in seq(B)){
       Qa[i,b] <- t(momFunc[i,b,]) %*% W %*% momFunc[i,b,]
     }
     param_est[b] <- qN[which.min(Qa[,b])]
-  } else if (modelType == 3){
+    
+    
+    
+  } else if (modelType == 4){
     momFunc <- array(rep(0, length(qN) * length(qP) * B * m), dim = c(length(qN), length(qP), B, m))
     Qa <- array(rep(0, length(qN) * length(qP) * B), dim = c(length(qN), length(qP), B))
+    param_est <- zeros(B, 2)
     for (i in seq(length(qN))){
       for (j in seq(length(qP))){
         # Compute the moment function
@@ -540,21 +699,5 @@ for (b in seq(B)){
 file_name <- paste0('param_est_', as.character(modelType), '_mom_', as.character(case), '_', timeVector, '_', as.character(twoStepOptimal), '.RData')
 save(param_est, file = file.path('Rdata', file_name))
 
-# plot_ly(x = qP, y = qN, z = Qa[,,1], type = "heatmap")
-# plot_ly(x = qP, y = qN, z = Qa[,,1], type = "surface")
-# plot_ly(x = qP, y = qN, z = log(Qa[,,1]), type = "contour")
-
-if (modelType == 3 & bootstrap == 0){
-  plot_df <- expand_grid(qP, qN) %>%
-    mutate(Qa = c(Qa[,,1]))
-  
-  filename <- paste0("Figures/", 'data_model_', as.character(modelType), '_mom_', as.character(case), '_', timeVector, '_', as.character(twoStepOptimal), '.pdf')
-  pdf(file = filename)
-  ggplot(plot_df, aes(x = qP, y = qN, z = log(Qa))) + 
-    geom_contour_filled() +
-    geom_point(aes(x = param_est[1,2], y = param_est[1,1]), color = 'red', shape = 3) +
-    scale_fill_viridis_d(name = 'log(criterion function)') 
-  dev.off()
-}
 
 
