@@ -1,13 +1,16 @@
 ---
 title: 'Replication of "The Diffusion of Microfinance"'
-author: 'Kazuki Motohashi, Sakina Shibuya, and Mizuhiro Suzuki'
+author: 'Kazuki Motohashi, Sakina Shibuya, Mizuhiro Suzuki'
 date: "`r Sys.Date()`"
 output: pdf_document
 ---
-
+## Purpose of this exercise
 In this document, we aim to understand the codes used in [Banerjee et al. (2013), "The Diffusion of Microfinance"](https://science.sciencemag.org/content/341/6144/1236498) and try to replicate their estimation results.
 The data and original codes can be downloaded [here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=hdl:1902.1/21538).
-The details of their model are not discussed in this document: refer to the Supplementary material of the paper for details, which can be downloaded with the data and the codes.
+The details of their model are not discussed in this document: please refer to the Supplementary material of the paper for details, which can be downloaded with the data and the codes.
+
+## Summary of our findings
+Despite the successful replication of the intermediate results (network statistics), our replication estimates for the no endorsement model are non-trivially different. We explore potential causes at the end of this document; however, this may be due to that the original Matlab code does not contain a randomization seed which makes exact replication impossible
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -142,7 +145,7 @@ Here, we load data used in the analysis.
 One thing that seems not mentioned in the paper or in the Supplementary material is that, in each village, only households that belong to the largest cluster in the village are used.
 By the largest cluster, we mean the cluster composed of the largest number of sampled households.
 For example, see the network graph among households in a village $1$ below.
-Each circle indicates a household and blue households and pink households indicate households in the biggest cluster and those not, respectively.
+Each circle indicates a household. Blue circles are households in the biggest cluster, while pink circles are those which are not.
 
 ```{r}
 i <- 1
@@ -278,10 +281,17 @@ for (i in seq_along(vills)){
 ## Logistic regression using leaders to estimate $\beta$
 
 Before structural estimation, we estimate the parameters on how the log-odds ratio of participation changes as household characteristics change.
-This estimation is based on the participation decisions among the set of leaders, who we know are informed of the microfinance program.
+This estimation is based on the participation decisions among the set of leaders who we know are informed of the microfinance program.
 Since these parameters are used to calculate participation probabilities of non-leaders, one assumption imposed here is that the parameters are the same for leaders and non-leaders.
-The covariates used in this regression include quality of access to electricity, quality of latrines, number of beds, number of rooms, the number of beds per capita, and the number of rooms per capita.
-** I coundn't find an explanation of which variable indicates what. Maybe I should try harder to find it. **
+The covariates used in this regression include access to electricity, quality of latrines, number of beds, number of rooms, the number of beds per capita, and the number of rooms per capita.
+
+One thing worth noting is that, for access to electricity and quality of latrines, the variables are recorded as qualitative information.
+That is, for access to electricity, the question is "Does this household have electricity" and the ansewrs are "1 = Yes, Private", "2 = Yes, Government", and "3 = No".
+For quality of latrines, the question is "What type of latrine does your household have?" and the answers are "1 = Owned", "2 = Common", and "3 = None".
+However, in the original Matlab code, these variables are used as quantitative variables in estimation.
+For better regression, we should convert them to indicator variables.
+Here, we follow the original Matlab code and use them as numerical variables.
+
 
 ```{r}
 # Logistic fit to get coefficients for covariates and the constant ----------------------
@@ -289,13 +299,24 @@ leader_df <- as_tibble(Outcome) %>%
   bind_cols(Covars)
 glm_res <- glm(value ~ ., data = leader_df, family = "binomial") 
 Betas <- glm_res$coefficients
+beta_table <- summary(glm_res)$coefficients
+rownames(beta_table) <- c(
+  "Intercept",
+  "Number of rooms",
+  "Number of beds",
+  "Access to electricity",
+  "Quality of latrine",
+  "Number of rooms per capita",
+  "Number of beds per capita"
+)
 kable(
-  summary(glm_res)$coefficients, 
+  beta_table,
   caption = "Logistic regression estimation results", 
   digits = 2,
   booktabs = TRUE
   ) %>%
   kable_minimal(full_width = F)
+
 ```
 
 ## Calculate network statistics
@@ -378,7 +399,7 @@ for (i in seq_along(vills)){
 
 ```
 
-Here, as a sanity check, I compare the network statistics derived here with the one derived by using the original Matlab code.
+Here, as a sanity check, we compare the network statistics derived here with the one derived by using the original Matlab code.
 Since we use the same networks to calculate statistics, they should be identical.
 
 ```{r}
@@ -457,6 +478,8 @@ To avoid this problem, we need to rewrite them as follows:
 
 `minDistNonInfectedLeaders = min(D(:,logical((1-infected).*leaders), [], 1)')';`.
 
+<!-- Damn!! Good work!!! -->
+
 Correcting these gives identical network statistics:
 
 ```{r}
@@ -523,7 +546,7 @@ kable(netstats_compare, digits = 3, booktabs = TRUE) %>%
 Here we define a function to calculate moments, given the information on who take up microfinance.
 This function is used to calculate simulated moments and empirical moments.
 When calculating empirical moments, we use the data of take-ups by each household.
-On the other hand, for each village we simulate take-ups of microfinance by households, which is used when calculating simulated moments.
+On the other hand, we simulate take-ups of microfinance by households for each village, which is then used to calculate simulated moments.
 
 ```{r}
 # Define a function to calculate moments (moments) ------------
@@ -790,9 +813,9 @@ system.time(divergence_model(X, Z, Betas, leaders, TakeUp, Sec, c(0.3, 0.1), 5, 
 
 ## Run the model to obtain moment deviations for each village-simulation-parameter pair
 
-Given the functions defined so far, now we are ready to estimate parameters.
+Given the functions defined so far, we are now ready to estimate the parameters.
 First, we calculate the objective function $d(r, \theta)$ for each $\theta$ in the grid.
-This is the most time-consuming part of the estimation process: on a PC of one of the us, it takes almost 10 hours, even without the endorsement effect.
+This is the most time-consuming part of the estimation process: using one of our PCs, it takes almost 10 hours on R, even without the endorsement effect.
 Using parallel computation can speed up this process.
 
 ```{r, eval = FALSE}
@@ -995,7 +1018,7 @@ load(file.path('../Rdata', file_name))
 
 Before diving into the estimation results, we show the shape of objective functions by parameter values.
 The figure below is the value of objective functions, where we use the log scale for better visibility.
-The red cross in the figure indicates the parameter values minimizing the objective function, ie. point estimates.
+The red cross in the figure indicates the parameter values minimizing the objective function, i.e. point estimates.
 
 
 ```{r}
@@ -1091,7 +1114,7 @@ kable(
 
 ```
 
-The point estimates are slightly different from the ones in the paper, which could be because of the simulation.
+The point estimates are slightly different from the ones in the paper, which could be because of the simulation procedure.
 Note that since the original Matlab codes do not specify the random seed, we cannot exactly replicate their results.
 
 The distributions of bootstrap estimates are shown below.
@@ -1114,11 +1137,12 @@ ggplot(param_boot_df) +
 ## Comments
 
 ### Major comments
-- To calculate standard errors, the authors use the "bootstrap" method, in which, instead of randomly resampling observations and estimating the parameters with the resampled dataset, they generate random weights many times and use them in construcing an objective function for estimation. While this substantially reduces the computation time since thye can avoid to calculate the differences between empirical moments and simulated moments for each resampled data, we have not heard of this "bootstrap" method, and any comments on this methods are appreciated.
-- As mentioned above, the original Matlab code does not include the random seed, which prohibits us from reproducing the original results.
+- To calculate standard errors, the authors use the "bootstrap" method, in which, they generate random weights many times and use them in constructing an objective function for estimation, rather than randomly resampling observations and estimating the parameters with the resampled dataset. While this substantially reduces the computation time, since this method avoids calculating the differences between empirical moments and simulated moments for each resampled data point, it is a rather unusual "bootstrap" method. Any comments on this method are appreciated.
+- As mentioned above, the original Matlab code does not include the random seed, which makes exact replication impossible.
 
 ### Minor comments
 - As discussed above, there is a small bug in the code to calculate network statistics, which could be why our estimates and the original estimates slightly differ.
-- When calculating network statistics, the variable about whether having an infected neighboring leader or not (`neighborOfInfected`) is 0 when a HH has both a neighboring infected leader and a neighboring non-infected leader, but it seems it should be 1 as that household has a neighboring infected leader. This may affect how they created the second moment.
-- The distribution of the bootstrap estimates on $qN$ is almost degenerate, which could be due to how they create the grid of $qN$: while up to $qN = 0.01$ the grid step is $0.001$, after that point the grid is pretty sparse ($\dots,\ 0.009,\ 0.01,\ 0.05,\ 0.1,\ 0.15, \dots$). Making the $qN$-grid finer around $0.05$  might change the distribution of the bootstrap estimates and hence the standard error of the estimate.
+- When calculating network statistics, the variable about whether having an infected neighboring leader (`neighborOfInfected`) is 0 when a HH has both a neighboring infected leader and a neighboring non-infected leader, but this seemingly should be 1 as that household has a neighboring infected leader. This may affect how they created the second moment.
+- The distribution of the bootstrap estimates on $qN$ is almost degenerate, which could be due to how the grid of $qN$ is constructed: while up to $qN = 0.01$ the grid step is $0.001$, after that point the grid is pretty sparse ($\dots,\ 0.009,\ 0.01,\ 0.05,\ 0.1,\ 0.15, \dots$). Making the $qN$-grid finer around $0.05$  might change the distribution of the bootstrap estimates, hence the standard error of the estimate.
+- In estimation of $\beta$, qualitative variables (access to electricity and quality of latrine) are used as quantitative variables.
 
