@@ -450,7 +450,7 @@ The reason is the lines 14 and 19 in the file `moments.m`:
 These derive minimum distances from take-up and non take-up leaders, respectively.
 When there are more than one take-up leaders, then `D(:,logical(infected.*leaders))'` is a matrix whose number of columns is the number of villagers and number of rows is the number of take-up leaders.
 Then, the operator `min` takes the minimum of each column, and its transpose is a column vector.
-The problem is that, if there is only one take-up leader, then `D(:,logical(infected.*leaders))'` becomes a vector and `min` operator takes the minimum of the lements in the vector, which returns a scalar.
+The problem is that, if there is only one take-up leader, then `D(:,logical(infected.*leaders))'` becomes a vector and `min` operator takes the minimum of the elements in the vector, which is a scalar.
 To avoid this problem, we need to rewrite them as follows:
 
 `minDistInfectedLeaders = min(D(:,logical(infected.*leaders), [], 1)')';`
@@ -854,6 +854,10 @@ if (twoStepOptimal == 1){
       as.character(case), '_', timeVector, '_0_0.RData'
       )
     load(file = file.path('../Rdata', file_name))
+    
+    for (i in seq(43)) {
+      aa[[i]] <- array(runif(10 * 160 * 75), c(10, 160, 75))
+    }
     
     qN_info <- param_est[1,1]
     qP_info <- param_est[1,1]
