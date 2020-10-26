@@ -141,6 +141,7 @@ end
 [Betas, dev, stats] = glmfit(Covars,Outcome,'binomial','link','logit');
 [Betas'; stats.se'; stats.p']
 
+%% 
 
 %7. RUNNING THE MODEL
 if modelType==1, % case where qN = qP
