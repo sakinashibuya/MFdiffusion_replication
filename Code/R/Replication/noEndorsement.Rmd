@@ -1,6 +1,6 @@
 ---
 title: 'Replication of "The Diffusion of Microfinance"'
-author: 'Mizuhiro Suzuki, Kazuki Motohashi, Sakina Shibuya'
+author: 'Kazuki Motohashi, Sakina Shibuya, Mizuhiro Suzuki'
 date: "`r Sys.Date()`"
 output: pdf_document
 ---
@@ -145,7 +145,7 @@ Here, we load data used in the analysis.
 One thing that seems not mentioned in the paper or in the Supplementary material is that, in each village, only households that belong to the largest cluster in the village are used.
 By the largest cluster, we mean the cluster composed of the largest number of sampled households.
 For example, see the network graph among households in a village $1$ below.
-Each circle indicates a household. Blue circles are households in the biggest cluster, while and pink circles are those which are not.
+Each circle indicates a household. Blue circles are households in the biggest cluster, while pink circles are those which are not.
 
 ```{r}
 i <- 1
@@ -283,8 +283,15 @@ for (i in seq_along(vills)){
 Before structural estimation, we estimate the parameters on how the log-odds ratio of participation changes as household characteristics change.
 This estimation is based on the participation decisions among the set of leaders who we know are informed of the microfinance program.
 Since these parameters are used to calculate participation probabilities of non-leaders, one assumption imposed here is that the parameters are the same for leaders and non-leaders.
-The covariates used in this regression include quality of access to electricity, quality of latrines, number of beds, number of rooms, the number of beds per capita, and the number of rooms per capita.
-(**I coundn't find an explanation as to which variable indicates what. Maybe I should try harder to find it.**) <!-- I also couldn't find this info. -->
+The covariates used in this regression include access to electricity, quality of latrines, number of beds, number of rooms, the number of beds per capita, and the number of rooms per capita.
+
+One thing worth noting is that, for access to electricity and quality of latrines, the variables are recorded as qualitative information.
+That is, for access to electricity, the question is "Does this household have electricity" and the ansewrs are "1 = Yes, Private", "2 = Yes, Government", and "3 = No".
+For quality of latrines, the question is "What type of latrine does your household have?" and the answers are "1 = Owned", "2 = Common", and "3 = None".
+However, in the original Matlab code, these variables are used as quantitative variables in estimation.
+For better regression, we should convert them to indicator variables.
+Here, we follow the original Matlab code and use them as numerical variables.
+
 
 ```{r}
 # Logistic fit to get coefficients for covariates and the constant ----------------------
@@ -292,13 +299,24 @@ leader_df <- as_tibble(Outcome) %>%
   bind_cols(Covars)
 glm_res <- glm(value ~ ., data = leader_df, family = "binomial") 
 Betas <- glm_res$coefficients
+beta_table <- summary(glm_res)$coefficients
+rownames(beta_table) <- c(
+  "Intercept",
+  "Number of rooms",
+  "Number of beds",
+  "Access to electricity",
+  "Quality of latrine",
+  "Number of rooms per capita",
+  "Number of beds per capita"
+)
 kable(
-  summary(glm_res)$coefficients, 
+  beta_table,
   caption = "Logistic regression estimation results", 
   digits = 2,
   booktabs = TRUE
   ) %>%
   kable_minimal(full_width = F)
+
 ```
 
 ## Calculate network statistics
@@ -528,7 +546,7 @@ kable(netstats_compare, digits = 3, booktabs = TRUE) %>%
 Here we define a function to calculate moments, given the information on who take up microfinance.
 This function is used to calculate simulated moments and empirical moments.
 When calculating empirical moments, we use the data of take-ups by each household.
-On the other hand, we simulate take-ups of microfinance by households for each village, which is used then used to calculate simulated moments.
+On the other hand, we simulate take-ups of microfinance by households for each village, which is then used to calculate simulated moments.
 
 ```{r}
 # Define a function to calculate moments (moments) ------------
@@ -1126,4 +1144,5 @@ ggplot(param_boot_df) +
 - As discussed above, there is a small bug in the code to calculate network statistics, which could be why our estimates and the original estimates slightly differ.
 - When calculating network statistics, the variable about whether having an infected neighboring leader (`neighborOfInfected`) is 0 when a HH has both a neighboring infected leader and a neighboring non-infected leader, but this seemingly should be 1 as that household has a neighboring infected leader. This may affect how they created the second moment.
 - The distribution of the bootstrap estimates on $qN$ is almost degenerate, which could be due to how the grid of $qN$ is constructed: while up to $qN = 0.01$ the grid step is $0.001$, after that point the grid is pretty sparse ($\dots,\ 0.009,\ 0.01,\ 0.05,\ 0.1,\ 0.15, \dots$). Making the $qN$-grid finer around $0.05$  might change the distribution of the bootstrap estimates, hence the standard error of the estimate.
+- In estimation of $\beta$, qualitative variables (access to electricity and quality of latrine) are used as quantitative variables.
 
