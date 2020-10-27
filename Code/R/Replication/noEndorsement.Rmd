@@ -3,6 +3,7 @@ title: 'Replication of "The Diffusion of Microfinance"'
 author: 'Kazuki Motohashi, Sakina Shibuya, Mizuhiro Suzuki'
 date: "`r Sys.Date()`"
 output: pdf_document
+urlcolor: blue
 ---
 ## Purpose of this exercise
 In this document, we aim to understand the codes used in [Banerjee et al. (2013), "The Diffusion of Microfinance"](https://science.sciencemag.org/content/341/6144/1236498) and try to replicate their estimation results.
@@ -1146,7 +1147,7 @@ ggplot(param_boot_df) +
 ## Comments
 
 ### Major comments
-- To calculate standard errors, the authors use the "bootstrap" method, in which, they generate random weights many times and use them in constructing an objective function for estimation, rather than randomly resampling observations and estimating the parameters with the resampled dataset. While this substantially reduces the computation time, since this method avoids calculating the differences between empirical moments and simulated moments for each resampled data point, it is a rather unusual "bootstrap" method. Any comments on this method are appreciated.
+- To calculate standard errors, the authors use the "bootstrap" method, in which, they generate random weights many times and use them in constructing an objective function for estimation, rather than randomly resampling observations and estimating the parameters with the resampled dataset. While this substantially reduces the computation time, since this method avoids calculating the differences between empirical moments and simulated moments for each resampled data point, this method is unfamiliar to any of us. The procedure seems similar to the one in [the Poisson bootstrap](http://www.unofficialgoogledatascience.com/2015/08/an-introduction-to-poisson-bootstrap26.html), but any comments on this method are appreciated.
 - As mentioned above, the original Matlab code does not include the random seed, which makes exact replication impossible.
 
 ### Minor comments
