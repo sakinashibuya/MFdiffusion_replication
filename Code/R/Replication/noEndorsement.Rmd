@@ -9,6 +9,11 @@ In this document, we aim to understand the codes used in [Banerjee et al. (2013)
 The data and original codes can be downloaded [here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=hdl:1902.1/21538).
 The details of their model are not discussed in this document: please refer to the Supplementary material of the paper for details, which can be downloaded with the data and the codes.
 
+We would like to emphasize that, while we leave some comments on the original analysis at the end of this document, we believe they do not change the value of this paper.
+"Social learning and technology adoption" has been one of the most important topics in development economics for decades, and this study is one of the first ones which investigates the mechanism of information transmission with explicit network data.
+Furthermore, the centrality concept that they propose, which will not be discussed in this document, is extremely useful for implementing policies in the real world.
+We hope this document will be helpful for those interested in network analysis to push the frontier of the literature pioneered by this study.
+
 ## Summary of our findings
 Despite the successful replication of the intermediate results (network statistics), our replication estimates for the no endorsement model are non-trivially different. We explore potential causes at the end of this document; however, this may be due to that the original Matlab code does not contain a randomization seed which makes exact replication impossible
 
@@ -68,7 +73,7 @@ First, we define global settings to run the code below.
 # Global setting -------------------
 user <- "Hiro"
 if (user == "Hiro"){
-  project_path <- "/Users/mizuhirosuzuki/Documents/GitHub/MFdiffusion_replication"
+  project_path <- "/Users/mizuhirosuzuki/Dropbox/MFdiffusion_replication"
 }
 
 # random seed
