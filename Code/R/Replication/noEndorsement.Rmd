@@ -5,6 +5,9 @@ date: "`r Sys.Date()`"
 output: pdf_document
 urlcolor: blue
 ---
+
+**This replication exercise was done mainly for our learning purpose. This is not to be taken as a official critique of the original paper.**
+
 ## Purpose of this exercise
 In this document, we aim to understand the codes used in [Banerjee et al. (2013), "The Diffusion of Microfinance"](https://science.sciencemag.org/content/341/6144/1236498) and try to replicate their estimation results.
 The data and original codes can be downloaded [here](https://dataverse.harvard.edu/dataset.xhtml?persistentId=hdl:1902.1/21538).
@@ -16,7 +19,9 @@ Furthermore, the centrality concept that they propose, which will not be discuss
 We hope this document will be helpful for those interested in network analysis to push the frontier of the literature pioneered by this study.
 
 ## Summary of our findings
-Despite the successful replication of the intermediate results (network statistics), our replication estimates for the no endorsement model are non-trivially different. We explore potential causes at the end of this document; however, this may be due to that the original Matlab code does not contain a randomization seed which makes exact replication impossible
+Although our replication estimates for the no-endorsement model are almost identical to the original estimates, there are small differences in the intermediate results (network statistics).
+We explore potential causes at the end of this document; however, this may be due to that the original Matlab code does not contain a randomization seed which makes exact replication impossible.
+It should be noted that we believe these points do not change any implication of the paper since (i) we only attempted the replication of the no-endorsement model, which is just one of the models in the paper, and (ii) our estimates are only slightly different from the original estimates.
 
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -1132,14 +1137,14 @@ The red lines indicate point estimates.
 
 ```{r, warning = FALSE}
 ggplot(param_boot_df) +
-  geom_histogram(aes(x = qN)) +
+  geom_histogram(aes(x = qN), binwidth = 0.002) +
   geom_vline(xintercept = param_est[1], color = "red") +
   xlab("qN (bootstrap estimates)")
 ```
 
 ```{r, warning = FALSE}
 ggplot(param_boot_df) +
-  geom_histogram(aes(x = qP)) +
+  geom_histogram(aes(x = qP), binwidth = 0.005) +
   geom_vline(xintercept = param_est[2], color = "red") +
   xlab("qP (bootstrap estimates)")
 ```
